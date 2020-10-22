@@ -2,75 +2,75 @@
 
 int NetworkUtils::WriteAllToSocket(int Socket, const char* Data, size_t Count)
 {
-	ssize_t totalBytes = 0;
+    ssize_t totalBytes = 0;
     ssize_t bytesWritten = 0;
     
-	while (totalBytes < (ssize_t)Count)
+    while (totalBytes < (ssize_t)Count)
     {
-		bytesWritten = send(Socket, Data + totalBytes, Count - totalBytes, MSG_NOSIGNAL);
+        bytesWritten = send(Socket, Data + totalBytes, Count - totalBytes, MSG_NOSIGNAL);
 
-		if (bytesWritten > 0)
+        if (bytesWritten > 0)
         {
-			totalBytes += bytesWritten;
-		}
-		else if (bytesWritten == -1 && errno == EINTR)
+            totalBytes += bytesWritten;
+        }
+        else if (bytesWritten == -1 && errno == EINTR)
         {
-			continue;
-		}
-		else
+            continue;
+        }
+        else
         {
-			break;
-		}
-	}
+            break;
+        }
+    }
 
-	return totalBytes;
+    return totalBytes;
 }
 
 int NetworkUtils::ReadAllFromSocket(int Socket, char* Data, size_t Count)
 {
-	ssize_t totalBytes = 0;
+    ssize_t totalBytes = 0;
     ssize_t bytesRead = 0;
     
-	while (totalBytes < (ssize_t)Count)
+    while (totalBytes < (ssize_t)Count)
     {
-		bytesRead = read(Socket, Data + totalBytes, Count - totalBytes);
+        bytesRead = read(Socket, Data + totalBytes, Count - totalBytes);
 
-		if (bytesRead > 0)
+        if (bytesRead > 0)
         {
-			totalBytes += bytesRead;
-		}
-		else if (bytesRead == -1 && errno == EINTR)
+            totalBytes += bytesRead;
+        }
+        else if (bytesRead == -1 && errno == EINTR)
         {
-			continue;
-		}
-		else
+            continue;
+        }
+        else
         {
-			break;
-		}
-	}
+            break;
+        }
+    }
 
-	return totalBytes;
+    return totalBytes;
 }
 
 ERROR_CODE
 NetworkUtils::GetIpAddress(uint32_t* IpAddress)
 {
-	int ec = 0;
-	char hostname_buffer[256];
-	struct hostent* host_entry;
+    int ec = 0;
+    char hostname_buffer[256];
+    struct hostent* host_entry;
 
-	EXIT_IF_FAILED(gethostname(hostname_buffer, sizeof(hostname_buffer)),
+    EXIT_IF_FAILED(gethostname(hostname_buffer, sizeof(hostname_buffer)),
                    Cleanup);
     
-	host_entry = gethostbyname(hostname_buffer);
+    host_entry = gethostbyname(hostname_buffer);
     EXIT_IF_NULL(host_entry,
                  E_FAIL,
                  Cleanup);
     
-	*IpAddress = ((struct in_addr*)host_entry->h_addr_list[0])->s_addr;
+    *IpAddress = ((struct in_addr*)host_entry->h_addr_list[0])->s_addr;
     
 Cleanup:
-	return ec;
+    return ec;
 }
 
 ERROR_CODE

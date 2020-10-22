@@ -16,12 +16,12 @@
 
 namespace NetworkUtils
 {
-	int
+    int
     WriteAllToSocket(int Socket,
                      const char* Data,
                      size_t Count);
 
-	int
+    int
     ReadAllFromSocket(int Socket,
                       char* Data,
                       size_t Count);
@@ -34,6 +34,6 @@ namespace NetworkUtils
     WriteFileDescriptorToUnixSocket(int Socket,
                                     int FileDescriptor);
 
-	ERROR_CODE
+    ERROR_CODE
     GetIpAddress(uint32_t* IpAddress);
 }
