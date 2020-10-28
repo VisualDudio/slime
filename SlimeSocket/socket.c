@@ -1,6 +1,3 @@
-// #define SECURITY
-#define _GNU_SOURCE
-
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -17,7 +14,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
-#include <sys/epoll.h>
 #include <arpa/inet.h>
 #include <errno.h>
 
@@ -26,21 +22,8 @@
 #include "types.h"
 #include "msg.h"
 
-#define USE_GLOBAL_LOCK 1
-
-#define _ADD_REF(x) &##x
-#define ADD_REF(x) _ADD_REF(x)
-
-#ifdef USE_GLOBAL_LOCK
-#define RET_W_UNLOCK(lock_name, ret_val) do {           \
-        pthread_mutex_unlock(ADD_REF(lock_name));       \
-        return ret_val;                                 \
-    } while (0)                                         
-#else
-#define RET_W_UNLOCK(lock_name, ret_val) do {           \
-        return ret_val;                                 \
-    } while (0)                                         
-#endif
+#define USE_GLOBAL_LOCK
+#define SLIME_DEBUG
 
 #ifdef USE_GLOBAL_LOCK
 static pthread_mutex_t giant_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -57,11 +40,11 @@ static pthread_mutex_t giant_lock = PTHREAD_MUTEX_INITIALIZER;
 
 #ifdef SLIME_DEBUG
 #define slime_debug(format, ...) do { \
-        fprintf(stderr, format, ##__VA_ARGS__); \
+        fprintf(stderr, "slime: " format, ##__VA_ARGS__); \
         fflush(stderr); \
     } while (0)
 #define slime_debugln(format, ...) do { \
-        fprintf(stderr, format "\n", ##__VA_ARGS__); \
+        fprintf(stderr, "slime: " format "\n", ##__VA_ARGS__); \
         fflush(stderr); \
     } while (0)
 #else
@@ -71,19 +54,15 @@ static pthread_mutex_t giant_lock = PTHREAD_MUTEX_INITIALIZER;
 
 #define log_error(format, ...) do { \
         slime_debugln(format, ##__VA_ARGS__); \
+        perror("slime"); \
         slime_debugln("  errno: %d", errno); \
     } while (0)
 
-int fd_to_epoll_fd[65536];
-struct epoll_event epoll_events[65536];
-
-static struct epoll_calls real_epoll;
-static struct socket_calls real_socket;
-
-static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static const char *router_path = "/slime/router/slime_router.sock";
 
+static struct socket_calls real_socket;
+static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static uint32_t prefix_ip = 0;
 static uint32_t prefix_mask = 0;
 static int32_t router_socket = 0;
@@ -137,19 +116,18 @@ static int init_preload(void) {
         goto out;
     }
 
-    real_socket.socket = dlsym(RTLD_NEXT, "socket");
-    real_socket.bind = dlsym(RTLD_NEXT, "bind");
-    real_socket.listen = dlsym(RTLD_NEXT, "listen");
-    real_socket.accept = dlsym(RTLD_NEXT, "accept");
-    real_socket.accept4 = dlsym(RTLD_NEXT, "accept4");
-    real_socket.connect = dlsym(RTLD_NEXT, "connect");
-    real_socket.getpeername = dlsym(RTLD_NEXT, "getpeername");
-    real_socket.getsockname = dlsym(RTLD_NEXT, "getsockname");
-    real_socket.setsockopt = dlsym(RTLD_NEXT, "setsockopt");
-    real_socket.getsockopt = dlsym(RTLD_NEXT, "getsockopt");
-    real_socket.fcntl = dlsym(RTLD_NEXT, "fcntl");
-    real_socket.close = dlsym(RTLD_NEXT, "close");
-    real_epoll.epoll_ctl = dlsym(RTLD_NEXT, "epoll_ctl");
+    real_socket.socket = (int (*)(int, int, int)) dlsym(RTLD_NEXT, "socket");
+    real_socket.bind = (int (*)(int, const sockaddr *, socklen_t)) dlsym(RTLD_NEXT, "bind");
+    real_socket.listen = (int (*)(int, int)) dlsym(RTLD_NEXT, "listen");
+    real_socket.accept = (int (*)(int, sockaddr *, socklen_t *)) dlsym(RTLD_NEXT, "accept");
+    real_socket.accept4 = (int (*)(int, sockaddr *, socklen_t *, int)) dlsym(RTLD_NEXT, "accept4");
+    real_socket.connect = (int (*)(int, const sockaddr *, socklen_t)) dlsym(RTLD_NEXT, "connect");
+    real_socket.getpeername = (int (*)(int, sockaddr *, socklen_t *)) dlsym(RTLD_NEXT, "getpeername");
+    real_socket.getsockname = (int (*)(int, sockaddr *, socklen_t *)) dlsym(RTLD_NEXT, "getsockname");
+    real_socket.setsockopt = (int (*)(int, int, int, const void *, socklen_t)) dlsym(RTLD_NEXT, "setsockopt");
+    real_socket.getsockopt = (int (*)(int, int, int, void *, socklen_t *)) dlsym(RTLD_NEXT, "getsockopt");
+    real_socket.fcntl = (int (*)(int, int, ...)) dlsym(RTLD_NEXT, "fcntl");
+    real_socket.close = (int (*)(int)) dlsym(RTLD_NEXT, "close");
 
     getenv_options();
     if (connect_router() < 0) {
@@ -174,27 +152,11 @@ int connect_router() {
     saun.sun_family = AF_UNIX;
     strcpy(saun.sun_path, router_path);
     int len = sizeof(saun.sun_family) + strlen(saun.sun_path);
-    if (real_socket.connect(unix_sock, (struct sockaddr*) &saun, len) < 0) {
+    if (real_socket.connect(router_socket, (struct sockaddr*) &saun, len) < 0) {
         log_error("Cannot connect router. try again");
-        real_socket.close(unix_sock);
+        real_socket.close(router_socket);
     }
     return 0;
-}
-
-int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event) {
-    GLOBAL_LOCK;
-    slime_debugln("epoll_ctl(%d, %d, %d)", epfd, op, fd);
-
-    switch (op) {
-        case EPOLL_CTL_ADD:
-            fd_to_epoll_fd[fd] = epfd;
-            epoll_events[fd] = *event;
-            break;
-        case EPOLL_CTL_DEL:
-            fd_to_epoll_fd[fd] = 0;
-    }
-    GLOBAL_UNLOCK;
-    return real_epoll.epoll_ctl(epfd, op, fd, event);
 }
 
 msg_t *xfer_msg(msg_t *req, const char *call) {
@@ -205,11 +167,11 @@ msg_t *xfer_msg(msg_t *req, const char *call) {
     }
 
     uint32_t rem_size = sizeof(msg_kind_t) + sizeof(uint32_t) + sizeof(uint32_t);
-    char *buf = malloc(rem_size);
+    char *buf = (char *) malloc(rem_size);
     char *_buf = buf;
     uint32_t read_size;
     while (rem_size) {
-        read_size = read(unix_sock, _buf, rem_size);
+        read_size = read(router_socket, _buf, rem_size);
         if (read_size < 0) {
             log_error("xfer_msg: %s: read fails", call);
             return NULL;
@@ -231,11 +193,7 @@ int socket(int domain, int type, int protocol) {
     }
     GLOBAL_LOCK;
 
-    /* struct fd_info *fdi = calloc(1, sizeof(*fdi)); */
-    /* int overlay_fd = real_socket.socket(domain, type, protocol); */
-    /* fd_to_epoll_fd[overlay_fd] = 0; */
-
-    slime_debugln("socket(%d, %d, %d) --> %d", domain, type, protocol, overlay_fd);
+    slime_debugln("socket(%d, %d, %d)", domain, type, protocol);
 
     if ((domain == AF_INET || domain == AF_INET6) && (type & SOCK_STREAM) && (!protocol || protocol == IPPROTO_TCP)) {
         msg_t *socket_req = new_socket_req(domain, type, protocol);
@@ -248,8 +206,9 @@ int socket(int domain, int type, int protocol) {
             return -1;
         }
 
-        int client_fd = dup(ret_fd);
-        fd_info_t info = { .normal = false, .host_fd = ((socket_resp_t *) &resp->body)->host_socket };
+        int host_socket = ((socket_resp_t *) &resp->body)->host_socket;
+        int client_fd = dup(host_socket);
+        fd_info_t info = { .normal = false, .host_fd = host_socket };
         fd_info[client_fd] = info;
         free(socket_req);
         free(resp);
@@ -305,8 +264,7 @@ int bind(int socket, const struct sockaddr *addr, socklen_t addrlen) {
     return status;
 }
 
-int listen(int socket, int backlog)
-{
+int listen(int socket, int backlog) {
     GLOBAL_LOCK;
     slime_debugln("listen(%d, %d)", socket, backlog);
 
@@ -316,26 +274,11 @@ int listen(int socket, int backlog)
         return real_socket.listen(socket, backlog);
     }
 
-    msg_t *listen_req = new_listen_req(socket, backlog);
-    if (!listen_req) {
-        slime_debugln("listen_req creation fails");
-        return -1;
-    }
-    msg_t *resp = xfer_msg(listen_req, "listen");
-    if (!resp) {
-        return -1;
-    }
-
-    // TODO
-    int32_t status = ((bind_resp_t *) resp->body)->status;
-    free(bind_req);
-    free(resp);
-    GLOBAL_UNLOCK;
-    return status;
+    return real_socket.listen(info.host_fd, backlog);
 }
 
 int accept(int socket, struct sockaddr *addr, socklen_t *addrlen) {
-    accept4(socket, addr, addrlen, 0);
+    return accept4(socket, addr, addrlen, 0);
 }
 
 int accept4(int socket, struct sockaddr *addr, socklen_t *addrlen, int flags) {
@@ -357,7 +300,7 @@ int accept4(int socket, struct sockaddr *addr, socklen_t *addrlen, int flags) {
         return real_socket.accept4(socket, addr, addrlen, flags);
     }
 
-    msg_t *accept_req = new_accept(flags);
+    msg_t *accept_req = new_accept_req(flags);
     if (!accept_req) {
         slime_debugln("accept_req creation fails");
         return -1;
@@ -410,170 +353,22 @@ int connect(int socket, const struct sockaddr *addr, socklen_t addrlen) {
     return status;
 }
 
-int getpeername(int socket, struct sockaddr *addr, socklen_t *addrlen) {
-    GLOBAL_LOCK;
-    if (fd_get_type(socket) == fd_normal) {
-        GLOBAL_UNLOCK;
-        return real_socket.getpeername(socket, addr, addrlen);
-    }
-
-    int overlay_fd = fd_get_overlay_fd(socket);
-    GLOBAL_UNLOCK;
-    return real_socket.getpeername(overlay_fd, addr, addrlen);
-}
-
-int getsockname(int socket, struct sockaddr *addr, socklen_t *addrlen) {
-    GLOBAL_LOCK;
-    if (fd_get_type(socket) == fd_normal) {
-        GLOBAL_UNLOCK;
-        return real_socket.getsockname(socket, addr, addrlen);
-    }
-
-    int overlay_fd = fd_get_overlay_fd(socket);
-    GLOBAL_UNLOCK;
-    return real_socket.getsockname(overlay_fd, addr, addrlen);
-}
-
-int getsockopt(int socket, int level, int optname, void *optval, socklen_t *optlen) {
-    GLOBAL_LOCK;
-    if (fd_get_type(socket) == fd_normal) {
-        GLOBAL_UNLOCK;
-        return real_socket.getsockopt(socket, level, optname, optval, optlen);
-    }
-    int overlay_fd = fd_get_overlay_fd(socket);
-    GLOBAL_UNLOCK;
-    return real_socket.getsockopt(overlay_fd, level, optname, optval, optlen);
-}
-
-int setsockopt(int socket, int level, int optname, const void *optval, socklen_t optlen) {
-    GLOBAL_LOCK;
-    slime_debugln("setsockopt(%d, %d, %d)", socket, level, optname);
-
-    if (fd_get_type(socket) == fd_normal) {
-        GLOBAL_UNLOCK;
-        return real_socket.setsockopt(socket, level, optname, optval, optlen);
-    }
-
-    int overlay_fd = fd_get_overlay_fd(socket);
-    int ret = real_socket.setsockopt(overlay_fd, level, optname, optval, optlen);
-    if (optname != SO_REUSEPORT && optname != SO_REUSEADDR && level != IPPROTO_IPV6) {
-        int host_fd = fd_get_host_fd(socket);
-        ret = real_socket.setsockopt(host_fd, level, optname, optval, optlen);
-    }
-    GLOBAL_UNLOCK;
-    return ret;
-}
-
-int fcntl(int socket, int cmd, ... /* arg */) {
-    GLOBAL_LOCK;
-    va_list args;
-    long lparam;
-    void *pparam;
-    int ret;
-    bool normal;
-    int overlay_fd = socket, host_fd = socket;
-
-    if (init_preload() < 0) {
-        return -1;
-    }
-    if (fd_get_type(socket) == fd_normal) {
-        normal = 1;
-    }
-    else {
-        normal = 0;
-        overlay_fd = fd_get_overlay_fd(socket);
-        host_fd = fd_get_host_fd(socket);
-    }
-
-    // TODO: need to check whether it's a socket here
-
-    va_start(args, cmd);
-    switch (cmd) {
-    case F_GETFD:
-    case F_GETFL:
-    case F_GETOWN:
-    case F_GETSIG:
-    case F_GETLEASE:
-        if (normal) {
-            ret = real_socket.fcntl(socket, cmd);
-        }
-        else {
-            ret = real_socket.fcntl(host_fd, cmd);
-            if (overlay_fd != host_fd) {
-                real_socket.fcntl(overlay_fd, cmd);
-            }
-        }
-        break;
-    case F_DUPFD:
-    /*case F_DUPFD_CLOEXEC:*/
-    case F_SETFD:
-    case F_SETFL:
-    case F_SETOWN:
-    case F_SETSIG:
-    case F_SETLEASE:
-    case F_NOTIFY:
-        lparam = va_arg(args, long);
-        if (normal) {
-            ret = real_socket.fcntl(socket, cmd, lparam);
-        }
-        else {
-            ret = real_socket.fcntl(host_fd, cmd, lparam);
-            if (overlay_fd != host_fd) {
-                real_socket.fcntl(overlay_fd, cmd, lparam);
-            }
-        }
-        break;
-    default:
-        pparam = va_arg(args, void *);
-        if (normal) {
-            ret = real_socket.fcntl(socket, cmd, pparam);
-        }
-        else {
-            ret = real_socket.fcntl(host_fd, cmd, pparam);
-            if (overlay_fd != host_fd) {
-                real_socket.fcntl(overlay_fd, cmd, pparam);
-            }
-        }
-        break;
-    }
-    va_end(args);
-    GLOBAL_UNLOCK;
-    return ret;
-}
+/* int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event) { } */
+/* int getpeername(int socket, struct sockaddr *addr, socklen_t *addrlen) { } */
+/* int getsockname(int socket, struct sockaddr *addr, socklen_t *addrlen) { } */
+/* int getsockopt(int socket, int level, int optname, void *optval, socklen_t *optlen) { } */
+/* int setsockopt(int socket, int level, int optname, const void *optval, socklen_t optlen) { } */
+/* int fcntl(int socket, int cmd, ... /1* arg *1/) { } */
 
 int close(int socket) {
     GLOBAL_LOCK;
-    struct fd_info *fdi;
-    int ret;
+    slime_debugln("close(%d)", socket);
 
-    if (init_preload() < 0) {
-        return -1;
-    }
-    if (fd_get_type(socket) == fd_normal) {
-        fdi = idm_lookup(&idm, socket);
-        if (fdi) {
-            free(fdi);
-            idm_clear(&idm, socket);
-        }
+    fd_info_t info = fd_info[socket];
+    if (info.normal) {
         GLOBAL_UNLOCK;
         return real_socket.close(socket);
     }
 
-    int overlay_fd = fd_get_overlay_fd(socket);
-    int host_fd = fd_get_host_fd(socket);
-
-    slime_debugln("close(%d)", socket);
-
-    fdi = idm_lookup(&idm, socket);
-    idm_clear(&idm, socket);
-    free(fdi);
-    if (overlay_fd != host_fd) {
-        real_socket.close(host_fd);
-    }
-    ret = real_socket.close(overlay_fd);
-
-    fd_to_epoll_fd[host_fd] = 0;
-    fd_to_epoll_fd[overlay_fd] = 0;
-    GLOBAL_UNLOCK;
-    return ret;
+    return real_socket.close(info.host_fd);
 }

@@ -35,7 +35,7 @@ struct socket_calls {
 
 int connect_router();
 
-struct {
+typedef struct {
     bool normal;
     int host_fd;
 } fd_info_t;
