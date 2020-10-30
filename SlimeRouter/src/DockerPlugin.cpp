@@ -181,7 +181,6 @@ Return Value:
 {
     ERROR_CODE ec = S_OK;
     
-    std::cerr << "hello" << std::endl;
     m_HttpServer->listen(DOCKER_PLUGIN_PATH, 1);
     
     return ec;

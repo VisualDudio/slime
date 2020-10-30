@@ -10,7 +10,7 @@
 #define E_OUTOFMEMORY -3
 
 #define UNREFERENCED_PARAMETER(p) ((void)(p));
-#define SUCCEEDED(e) ((e) < S_OK)
+#define SUCCEEDED(e) ((e) >= S_OK)
 #define FAILED(e) (!SUCCEEDED(e))
 
 #define EXIT_IF_FAILED(e, l)                    \

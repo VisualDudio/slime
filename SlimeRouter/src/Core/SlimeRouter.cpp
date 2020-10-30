@@ -27,7 +27,7 @@ Abstract:
 // ---------------------------------------------------------------------- Definitions
 //
 
-#define UNIX_SERVER_PATH "~/slime/SlimeSocket"
+#define UNIX_SERVER_PATH "/home/ombarki2/slime/SlimeSocket.sock"
 #define UDP_PORT 8080
 
 //
