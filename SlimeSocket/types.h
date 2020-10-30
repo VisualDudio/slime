@@ -12,67 +12,30 @@ typedef enum SOCKET_FUNCTION_CALL
     SOCKET_GETSOCKNAME
 } SOCKET_FUNCTION_CALL;
 
-struct FfrRequestHeader
-{
-    SOCKET_FUNCTION_CALL func;
-    uint32_t body_size;
-#ifdef SECURITY
+struct epoll_calls {
+    int (*epoll_ctl) (int epfd, int op, int fd, struct epoll_event *event);
+};
+
+struct socket_calls {
+    int (*socket)(int domain, int type, int protocol);
+    int (*bind)(int socket, const struct sockaddr *addr, socklen_t addrlen);
+    int (*listen)(int socket, int backlog);
+    int (*accept)(int socket, struct sockaddr *addr, socklen_t *addrlen);
+    int (*accept4)(int sockfd, struct sockaddr *addr, socklen_t *addrlen, int flags);
+    int (*connect)(int socket, const struct sockaddr *addr, socklen_t addrlen);
+    int (*getpeername)(int socket, struct sockaddr *addr, socklen_t *addrlen);
+    int (*getsockname)(int socket, struct sockaddr *addr, socklen_t *addrlen);
+    int (*setsockopt)(int socket, int level, int optname,
+              const void *optval, socklen_t optlen);
+    int (*getsockopt)(int socket, int level, int optname,
+              void *optval, socklen_t *optlen);
+    int (*fcntl)(int socket, int cmd, ... /* arg */);
+    int (*close)(int socket);
+};
+
+int connect_router();
+
+typedef struct {
+    bool normal;
     int host_fd;
-    int con_fd;
-#endif
-};
-
-struct FfrResponseHeader
-{
-    int rsp_size;
-};
-
-struct SOCKET_SOCKET_REQ
-{
-    int domain;
-    int type;
-    int protocol;
-};
-
-struct SOCKET_SOCKET_RSP
-{
-    int ret; // host_index or errno
-};
-
-struct SOCKET_BIND_RSP
-{
-    int ret;
-};
-
-struct SOCKET_ACCEPT_RSP
-{
-    int ret; // host_index or errno
-};
-
-struct SOCKET_ACCEPT4_REQ
-{
-    int flags;
-};
-
-struct SOCKET_ACCEPT4_RSP
-{
-    int ret; // host_index or errno
-};
-
-struct SOCKET_CONNECT_REQ
-{
-    struct sockaddr_in host_addr;
-    socklen_t host_addrlen;
-};
-
-struct SOCKET_CONNECT_RSP
-{
-    int ret;
-};
-
-struct SOCKET_GETSOCKNAME_RSP
-{
-    struct sockaddr_in host_addr;
-    socklen_t host_addrlen;
-    int ret;
-};
+} fd_info_t;
