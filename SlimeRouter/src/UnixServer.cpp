@@ -97,8 +97,9 @@ Return Value:
     struct sockaddr_un addr;
     
     m_ServerSocket = socket(AF_UNIX, SOCK_STREAM, 0);
-    EXIT_IF_FAILED(m_ServerSocket,
-                   Cleanup);
+    EXIT_IF_TRUE(m_ServerSocket < 0,
+                 E_FAIL,
+                 Cleanup);
 
     addr.sun_family = AF_UNIX;
     std::strcpy(addr.sun_path, m_Path.c_str());

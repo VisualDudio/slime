@@ -14,6 +14,8 @@ Abstract:
 // ---------------------------------------------------------------------- Includes
 //
 
+#include <iostream>
+
 #include "DockerPlugin.h"
 #include "httplib.h"
 #include "json.hpp"
@@ -179,6 +181,7 @@ Return Value:
 {
     ERROR_CODE ec = S_OK;
     
+    std::cerr << "hello" << std::endl;
     m_HttpServer->listen(DOCKER_PLUGIN_PATH, 1);
     
     return ec;
@@ -189,6 +192,7 @@ DockerPlugin::Stop()
 /*++
 
 Routine Description:
+
 
     Stops the docker plugin.
 

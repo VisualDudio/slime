@@ -1,5 +1,5 @@
 all:
-	@$(MAKE) -C ./SlimeRouter/
+	@$(MAKE) debug -C ./SlimeRouter/
 	@$(MAKE) -C ./SlimeSocket/
 
 clean:

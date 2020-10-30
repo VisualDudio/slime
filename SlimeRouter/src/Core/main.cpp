@@ -29,9 +29,13 @@ Abstract:
 
 int main(void)
 {
+    ERROR_CODE ec = S_OK;
     std::unique_ptr<SlimeRouter> slimeRouter = nullptr;
 
     slimeRouter = std::make_unique<SlimeRouter>();
-    slimeRouter->Init();
-    slimeRouter->Start();
+    EXIT_IF_FAILED(slimeRouter->Init(), Cleanup);
+    EXIT_IF_FAILED(slimeRouter->Start(), Cleanup);
+
+Cleanup:
+    return ec;
 }
