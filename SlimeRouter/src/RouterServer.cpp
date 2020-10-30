@@ -96,11 +96,13 @@ Return Value:
 {
     ERROR_CODE ec = S_OK;
     
-    EXIT_IF_FAILED(UnixServer::Init(),
-                   Cleanup);
+    TRACE_IF_FAILED(UnixServer::Init(),
+                    Cleanup,
+                    "RouterServer::Init - Failed to initialize unix server! 0x%x", ec);
 
-    EXIT_IF_FAILED(m_MappingManager->Init(),
-                   Cleanup);
+    TRACE_IF_FAILED(m_MappingManager->Init(),
+                    Cleanup,
+                    "RouterServer::Init - Failed to initialize mapping manager! 0x%x", ec);
     
 Cleanup:
     return ec;
@@ -126,11 +128,13 @@ Return Value:
 {
     ERROR_CODE ec = S_OK;
     
-    EXIT_IF_FAILED(UnixServer::Start(),
-                   Cleanup);
+    TRACE_IF_FAILED(UnixServer::Start(),
+                    Cleanup,
+                    "RouterServer::Start - Failed to start unix server! 0x%x", ec);
     
-    EXIT_IF_FAILED(m_MappingManager->Start(),
-                   Cleanup);
+    TRACE_IF_FAILED(m_MappingManager->Start(),
+                    Cleanup,
+                    "RouterServer::Start - Failed to start mappping manager! 0x%x", ec);
 Cleanup:
     return ec;
 }
@@ -155,11 +159,13 @@ Return Value:
 {
     ERROR_CODE ec = S_OK;
 
-    EXIT_IF_FAILED(UnixServer::Stop(),
-                   Cleanup);
+    TRACE_IF_FAILED(UnixServer::Stop(),
+                    Cleanup,
+                    "RouterServer::Stop - Failed to stop unix server! 0x%x", ec);
     
-    EXIT_IF_FAILED(m_MappingManager->Stop(),
-                   Cleanup);
+    TRACE_IF_FAILED(m_MappingManager->Stop(),
+                    Cleanup,
+                    "RouterServer::Stop - Failed to stop mapping manager! 0x%x", ec);
     
 Cleanup:    
     return ec;
