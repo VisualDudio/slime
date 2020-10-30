@@ -187,13 +187,11 @@ msg_t *xfer_msg(msg_t *req, const char *call) {
     return resp;
 }
 
-int socket(int domain, int type, int protocol) {
+int _socket(int domain, int type, int protocol) {
     if (init_preload() < 0) {
         return -1;
     }
     GLOBAL_LOCK;
-
-    slime_debugln("socket(%d, %d, %d)", domain, type, protocol);
 
     if ((domain == AF_INET || domain == AF_INET6) && (type & SOCK_STREAM) && (!protocol || protocol == IPPROTO_TCP)) {
         msg_t *socket_req = new_socket_req(domain, type, protocol);
@@ -227,9 +225,15 @@ int socket(int domain, int type, int protocol) {
     }
 }
 
-int bind(int socket, const struct sockaddr *addr, socklen_t addrlen) {
+int socket(int domain, int type, int protocol) {
+    slime_debugln("socket(%x, %x, %x)", domain, type, protocol);
+    int ret = _socket(domain, type, protocol);
+    slime_debugln("socket(%x, %x, %x) -> %d", domain, type, protocol, ret);
+    return ret;
+}
+
+int _bind(int socket, const struct sockaddr *addr, socklen_t addrlen) {
     GLOBAL_LOCK;
-    slime_debugln("bind(%d, %s, %hu)", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port));
 
     fd_info_t info = fd_info[socket];
     if (info.normal || addr->sa_family != AF_INET) {
@@ -264,6 +268,13 @@ int bind(int socket, const struct sockaddr *addr, socklen_t addrlen) {
     return status;
 }
 
+int bind(int socket, const struct sockaddr *addr, socklen_t addrlen) {
+    slime_debugln("bind(%d, %s, %hu)", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port));
+    int ret = _bind(socket, addr, addrlen);
+    slime_debugln("bind(%d, %s, %hu) -> %x", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port), ret);
+    return ret;
+}
+
 int listen(int socket, int backlog) {
     GLOBAL_LOCK;
     slime_debugln("listen(%d, %d)", socket, backlog);
@@ -281,9 +292,8 @@ int accept(int socket, struct sockaddr *addr, socklen_t *addrlen) {
     return accept4(socket, addr, addrlen, 0);
 }
 
-int accept4(int socket, struct sockaddr *addr, socklen_t *addrlen, int flags) {
+int _accept4(int socket, struct sockaddr *addr, socklen_t *addrlen, int flags) {
     GLOBAL_LOCK;
-    slime_debugln("accept4(%d, %s, %hu, %x)", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port), flags);
 
     fd_info_t info = fd_info[socket];
     if (info.normal || addr->sa_family != AF_INET) {
@@ -317,9 +327,15 @@ int accept4(int socket, struct sockaddr *addr, socklen_t *addrlen, int flags) {
     return csock;
 }
 
-int connect(int socket, const struct sockaddr *addr, socklen_t addrlen) {
+int accept4(int socket, struct sockaddr *addr, socklen_t *addrlen, int flags) {
+    slime_debugln("accept4(%d, %s, %hu, %x)", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port), flags);
+    int ret = _accept4(socket, addr, addrlen, flags);
+    slime_debugln("accept4(%d, %s, %hu, %x) -> %x", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port), flags, ret);
+    return ret;
+}
+
+int _connect(int socket, const struct sockaddr *addr, socklen_t addrlen) {
     GLOBAL_LOCK;
-    slime_debugln("connect(%d, %s, %hu)", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port));
 
     fd_info_t info = fd_info[socket];
     if (info.normal || addr->sa_family != AF_INET) {
@@ -351,6 +367,13 @@ int connect(int socket, const struct sockaddr *addr, socklen_t addrlen) {
     free(resp);
     GLOBAL_UNLOCK;
     return status;
+}
+
+int connect(int socket, const struct sockaddr *addr, socklen_t addrlen) {
+    slime_debugln("connect(%d, %s, %hu)", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port));
+    int ret = _connect(socket, addr, addrlen);
+    slime_debugln("connect(%d, %s, %hu) -> %x", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port), ret);
+    return ret;
 }
 
 /* int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event) { } */
