@@ -97,22 +97,24 @@ Return Value:
     struct sockaddr_un addr;
     
     m_ServerSocket = socket(AF_UNIX, SOCK_STREAM, 0);
-    EXIT_IF_TRUE(m_ServerSocket < 0,
-                 E_FAIL,
-                 Cleanup);
+    TRACE_IF_FAILED(m_ServerSocket,
+                    Cleanup,
+                    "UnixServer::Init() - Failed to create server socket! 0x%x", ec);
 
     addr.sun_family = AF_UNIX;
     std::strcpy(addr.sun_path, m_Path.c_str());
     
     unlink(m_Path.c_str());
     
-    EXIT_IF_FAILED(bind(m_ServerSocket,
-                        (const sockaddr*)&addr,
-                        sizeof(addr.sun_family) + strlen(addr.sun_path)),
-                   Cleanup);
+    TRACE_IF_FAILED(bind(m_ServerSocket,
+                         (const sockaddr*)&addr,
+                         sizeof(addr.sun_family) + strlen(addr.sun_path)),
+                    Cleanup,
+                    "UnixServer::Init() - Failed to bind server socket! 0x%x", ec);
 
-    EXIT_IF_FAILED(listen(m_ServerSocket, 128),
-                   Cleanup);
+    TRACE_IF_FAILED(listen(m_ServerSocket, 128),
+                    Cleanup,
+                    "UnixServer::Init() - Failed to listen server socket! 0x%x", ec);
     
 Cleanup:
     return ec;

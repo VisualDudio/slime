@@ -193,7 +193,6 @@ DockerPlugin::Stop()
 
 Routine Description:
 
-
     Stops the docker plugin.
 
 Arguments:

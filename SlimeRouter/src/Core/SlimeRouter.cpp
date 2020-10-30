@@ -138,8 +138,9 @@ Return Value:
                  E_OUTOFMEMORY,
                  Cleanup);
     
-    EXIT_IF_FAILED(m_RouterServer->Init(),
-                   Cleanup);
+    TRACE_IF_FAILED(m_RouterServer->Init(),
+                    Cleanup,
+                    "SlimeRouter::Init - Failed to initialize m_RouterServer! 0x%x", ec);
     
 Cleanup:
     return ec;
