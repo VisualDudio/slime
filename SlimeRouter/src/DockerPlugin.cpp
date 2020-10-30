@@ -181,7 +181,8 @@ Return Value:
 {
     ERROR_CODE ec = S_OK;
     
-    m_HttpServer->listen(DOCKER_PLUGIN_PATH, 1);
+    std::thread t([=] { m_HttpServer->listen(DOCKER_PLUGIN_PATH, 1); });
+    t.detach();
     
     return ec;
 }

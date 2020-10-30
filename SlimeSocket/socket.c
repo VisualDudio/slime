@@ -59,7 +59,7 @@ static pthread_mutex_t giant_lock = PTHREAD_MUTEX_INITIALIZER;
     } while (0)
 
 
-static const char *router_path = "/slime/router/slime_router.sock";
+static const char *router_path = "/slime/SlimeRouter.sock";
 
 static struct socket_calls real_socket;
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
