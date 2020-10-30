@@ -102,7 +102,7 @@ Cleanup:
 }
 
 ERROR_CODE
-UdpClient::Send(const std::string& Message,
+UdpClient::Send(const Message& Message,
                 const std::string& IpAddress,
                 const uint16_t Port)
 /*++
@@ -113,29 +113,31 @@ Routine Description:
 
 Arguments:
 
-    None.
+    Message - The message to send.
+
+    IpAddress - The IP address to send to.
+
+    Port - The port to send to.
 
 Return Value:
 
-    None.
+    S_OK on success, error otherwise.
 
 --*/
 {
-    ERROR_CODE ec = 0;
+    ERROR_CODE ec = S_OK;
     struct sockaddr_in serverAddress;
     
     serverAddress.sin_family = AF_INET;
     serverAddress.sin_port = htons(Port);
-    serverAddress.sin_addr.s_addr = INADDR_ANY;
     
-    EXIT_IF_FAILED(inet_pton(AF_INET,
-                             IpAddress.c_str(),
-                             &serverAddress.sin_addr),
-                   Cleanup);
+    inet_pton(AF_INET,
+              IpAddress.c_str(),
+              &serverAddress.sin_addr);
 
     EXIT_IF_FAILED(sendto(m_ClientSocket,
-                          Message.c_str(),
-                          Message.size(),
+                          &Message,
+                          sizeof(Message),
                           MSG_CONFIRM,
                           (struct sockaddr*)&serverAddress,
                           sizeof(serverAddress)),

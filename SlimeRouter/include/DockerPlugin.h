@@ -34,6 +34,8 @@ namespace httplib
     class Server;
 }
 
+class IMembershipManager;
+
 class DockerPlugin final : public IMembershipProtocol
 {
 public:
@@ -48,14 +50,14 @@ public:
     //
 
     ERROR_CODE
-    Init() override;
+    Init(IMembershipManager& MembershipManager) override;
 
     ERROR_CODE
     Start() override;
 
     ERROR_CODE
     Stop() override;
-    
+
 private:
     std::unique_ptr<httplib::Server> m_HttpServer;
 };

@@ -17,8 +17,11 @@ Abstract:
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <string>
 
 #include "UdpServer.h"
+#include "Message.h"
+
 //
 // ---------------------------------------------------------------------- Definitions
 //
@@ -163,6 +166,32 @@ Return Value:
 }
 
 ERROR_CODE
+UdpServer::GetNextIncomingMessage(std::string* Message)
+/*++
+
+Routine Description:
+
+    Gets the next incoming message from the message queue.
+
+Arguments:
+
+    Message - The message to populate.
+
+Return Value:
+
+    S_OK on success, error otherwise.
+
+--*/
+{
+    ERROR_CODE ec = S_OK;
+    
+    *Message = m_IncomingMessages.Pop();
+    
+    return ec;
+}
+
+
+ERROR_CODE
 UdpServer::Listen()
 /*++
 
@@ -184,23 +213,22 @@ Return Value:
     struct sockaddr_in clientAddress;
     char buffer[MESSAGE_BUFFER_SIZE] = {0};
     socklen_t addressLength = 0;
+    ssize_t bytesRead = 0;
     
     addressLength = sizeof(clientAddress);
     
     while (1)
     {
-        EXIT_IF_FAILED(recvfrom(m_ServerSocket,
-                                buffer,
-                                sizeof(buffer),
-                                MSG_WAITALL,
-                                (struct sockaddr*)&clientAddress,
-                                &addressLength),
-                       Cleanup);
+        bytesRead = recvfrom(m_ServerSocket,
+                             buffer,
+                             sizeof(buffer),
+                             MSG_WAITALL,
+                             (struct sockaddr*)&clientAddress,
+                             &addressLength);
         
-        m_IncomingMessages.Push(std::string(buffer));
+        m_IncomingMessages.Push(std::string(buffer, bytesRead));
     }
 
-Cleanup:
     return ec;
 }
 

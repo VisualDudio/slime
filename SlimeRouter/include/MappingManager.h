@@ -24,6 +24,7 @@ Abstract:
 
 #include "Message.h"
 #include "Error.h"
+#include "IMembershipManager.h"
 
 //
 // ---------------------------------------------------------------------- Definitions
@@ -38,7 +39,7 @@ Abstract:
 class IMembershipProtocol;
 class IMulticastProtocol;
 
-class MappingManager
+class MappingManager : public IMembershipManager
 {
 public:
     // Constructor
@@ -74,8 +75,14 @@ public:
                   uint32_t* HostAddress,
                   uint16_t* HostPort) const;
     
-private:
+    ERROR_CODE
+    OnJoin(const std::string& IpAddress) override;
 
+    ERROR_CODE
+    OnLeave(const std::string& IpAddress) override;
+    
+private:
+    
     ERROR_CODE
     HandleIncomingMessages();
     

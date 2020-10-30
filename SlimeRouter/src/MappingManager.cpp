@@ -98,7 +98,7 @@ Return Value:
 {
     ERROR_CODE ec = S_OK;
     
-    EXIT_IF_FAILED(m_MembershipProtocol->Init(),
+    EXIT_IF_FAILED(m_MembershipProtocol->Init(*this),
                    Cleanup);
     
     EXIT_IF_FAILED(m_MulticastProtocol->Init(),
@@ -320,6 +320,60 @@ Return Value:
     *HostIpAddress = addressMapping.HostIpAddress;
     *HostPort = addressMapping.HostPort;
 
+Cleanup:
+    return ec;
+}
+
+ERROR_CODE
+MappingManager::OnJoin(const std::string& IpAddress)
+/*++
+
+Routine Description:
+
+    Handles the OnJoin event.
+
+Arguments:
+
+    IpAddress - The IP address of the new member.
+
+Return Value:
+
+    S_OK on success, error otherwise.
+
+--*/
+{
+    ERROR_CODE ec = S_OK;
+    
+    EXIT_IF_FAILED(m_MulticastProtocol->AddToMulticastGroup(IpAddress, 8080),
+                   Cleanup);
+    
+Cleanup:
+    return ec;
+}
+
+ERROR_CODE
+MappingManager::OnLeave(const std::string& IpAddress)
+/*++
+
+Routine Description:
+
+    Handles the OnLeave event.
+
+Arguments:
+
+    IpAddress - The IP address of the member that left.
+
+Return Value:
+
+    S_OK on success, error otherwise.
+
+--*/
+{
+    ERROR_CODE ec = S_OK;
+    
+    EXIT_IF_FAILED(m_MulticastProtocol->RemoveFromMulticastGroup(IpAddress, 8080),
+                   Cleanup);
+    
 Cleanup:
     return ec;
 }

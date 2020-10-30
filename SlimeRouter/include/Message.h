@@ -92,6 +92,14 @@ struct Address
 
 // Gossip Messages
 
+/* struct GossipHeader */
+/* { */
+/*     uint16_t PushGossipCount; */
+/*     std::vector<PushGossip> PushGossips; */
+/*     uint16_t PullGossipCount; */
+/*     std::vector<PullGossip> PullGossips; */
+/* }; */
+
 enum class EventType
 {
     NewMember,

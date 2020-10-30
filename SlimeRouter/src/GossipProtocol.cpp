@@ -15,9 +15,11 @@ Abstract:
 //
 
 #include <chrono>
+#include <cstring>
 
 #include "GossipProtocol.h"
 #include "UdpClient.h"
+#include "UdpServer.h"
 
 //
 // ---------------------------------------------------------------------- Definitions
@@ -25,12 +27,14 @@ Abstract:
 
 #define GOSSIP_FANOUT 2
 #define GOSSIP_PERIOD std::chrono::milliseconds(1000)
+#define UDP_PORT 8080
 
 //
 // ---------------------------------------------------------------------- Functions
 //
 
-GossipProtocol::GossipProtocol(std::unique_ptr<UdpClient> UdpClient)
+GossipProtocol::GossipProtocol(std::unique_ptr<UdpClient> UdpClient,
+                               std::unique_ptr<UdpServer> UdpServer)
 /*++
 
 Routine Description:
@@ -47,7 +51,8 @@ Return Value:
 
 --*/
     :
-    m_UdpClient(std::move(UdpClient))
+    m_UdpClient(std::move(UdpClient)),
+    m_UdpServer(std::move(UdpServer))
 {
 }
 
@@ -146,7 +151,7 @@ Return Value:
 }
 
 ERROR_CODE
-GossipProtocol::AddToMulticastGroup()
+GossipProtocol::AddToMulticastGroup(const std::string& IpAddress, uint16_t Port)
 /*++
 
 Routine Description:
@@ -166,15 +171,16 @@ Return Value:
 --*/
 {
     ERROR_CODE ec = S_OK;
-
-//  m_EventQueue.push(std::make_unique<NewMember>(IpAddress, Port));
     
-//Cleanup:
+    UNREFERENCED_PARAMETER(Port);
+    
+    m_MulticastGroup.insert(std::move(IpAddress));
+
     return ec;
 }
 
 ERROR_CODE
-GossipProtocol::RemoveFromMulticastGroup()
+GossipProtocol::RemoveFromMulticastGroup(const std::string& IpAddress, uint16_t Port)
 /*++
 
 Routine Description:
@@ -183,9 +189,9 @@ Routine Description:
 
 Arguments:
 
-    IpAddress - The IP address of the node to add.
+    IpAddress - The IP address of the node to remove.
 
-    Port - The port of the node to add.
+    Port - The port of the node to remove.
 
 Return Value:
 
@@ -195,9 +201,10 @@ Return Value:
 {
     ERROR_CODE ec = S_OK;
 
-//  m_EventQueue.push(std::make_unique<NewMember>(IpAddress, Port));
+    UNREFERENCED_PARAMETER(Port);
     
-//Cleanup:
+    m_MulticastGroup.erase(IpAddress);
+    
     return ec;
 }
 
@@ -211,7 +218,7 @@ Routine Description:
 
 Arguments:
 
-    Payload - The contents of the message to multicast.
+    Message - The contents of the message to multicast.
 
 Return Value:
 
@@ -221,7 +228,10 @@ Return Value:
 {
     ERROR_CODE ec = S_OK;
     
-    UNREFERENCED_PARAMETER(Message);
+    for (const std::string& ipAddress : m_MulticastGroup)
+    {
+        m_UdpClient->Send(Message, ipAddress, UDP_PORT);
+    }
     
     return ec;
 }
@@ -316,8 +326,61 @@ Return Value:
 {
     ERROR_CODE ec = S_OK;
     
-    UNREFERENCED_PARAMETER(Message);
+    *Message = m_DeliveredMessages.Pop();
+    
+    return ec;
+}
 
+ERROR_CODE
+GossipProtocol::Deliver(const Message& Message)
+/*++
+
+Routine Description:
+
+    Delivers the provided message to the above layer.
+
+Arguments:
+
+    Message - The message to deliver.
+
+Return Value:
+
+    S_OK on success, error otherwise.
+
+--*/
+{
+    ERROR_CODE ec = S_OK;
+    
+    m_DeliveredMessages.Push(Message);
+    
+    return ec;
+}
+
+
+ERROR_CODE
+GossipProtocol::OnReceive(const Message& Message)
+/*++
+
+Routine Description:
+
+    Handles the OnReceive event.
+
+Arguments:
+
+    Message - The received message.
+
+Return Value:
+
+    S_OK on success, error otherwise.
+
+--*/
+{
+    ERROR_CODE ec = S_OK;
+    
+    EXIT_IF_FAILED(Deliver(Message),
+                   Cleanup);
+    
+Cleanup:
     return ec;
 }
 
@@ -341,11 +404,18 @@ Return Value:
 --*/
 {
     ERROR_CODE ec = S_OK;
+    std::string rawMessage;
+    Message message;
     
-    // while (m_UdpServer->GetNextDeliveredMessage(&message))
-    // {
-        
-    // }
+    while (m_UdpServer->GetNextIncomingMessage(&rawMessage))
+    {
+        std::memcpy(&message.Header, rawMessage.c_str(), sizeof(message.Header));
+        message.Body.resize(message.Header.Size);
+        std::memcpy(message.Body.data(),
+                    rawMessage.c_str() + sizeof(message.Header),
+                    sizeof(message.Header.Size));
+        OnReceive(message);
+    }
     
     return ec;
 }

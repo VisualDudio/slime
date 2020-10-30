@@ -17,6 +17,7 @@ Abstract:
 //
 
 #include "Error.h"
+#include "IMembershipManager.h"
 
 //
 // ---------------------------------------------------------------------- Definitions
@@ -41,7 +42,7 @@ public:
     
     virtual
     ERROR_CODE
-    Init() = 0;
+    Init(IMembershipManager& MembershipManager) = 0;
 
     virtual
     ERROR_CODE

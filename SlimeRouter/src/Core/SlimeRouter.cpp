@@ -18,6 +18,7 @@ Abstract:
 #include "MappingManager.h"
 #include "GossipProtocol.h"
 #include "UdpClient.h"
+#include "UdpServer.h"
 #include "DockerPlugin.h"
 #include "RouterServer.h"
 #include "httplib.h"
@@ -27,6 +28,7 @@ Abstract:
 //
 
 #define UNIX_SERVER_PATH "/slime/SlimeSocket"
+#define UDP_PORT 8080
 
 //
 // ---------------------------------------------------------------------- Functions
@@ -94,6 +96,7 @@ Return Value:
     std::unique_ptr<GossipProtocol> gossipProtocol = nullptr;
     std::unique_ptr<MappingManager> mappingManager = nullptr;
     std::unique_ptr<UdpClient> udpClient = nullptr;
+    std::unique_ptr<UdpServer> udpServer = nullptr;
     std::unique_ptr<DockerPlugin> dockerPlugin = nullptr;
     std::unique_ptr<httplib::Server> httpServer = nullptr;
     
@@ -102,7 +105,13 @@ Return Value:
                  E_OUTOFMEMORY,
                  Cleanup);
     
-    gossipProtocol = std::make_unique<GossipProtocol>(std::move(udpClient));
+    udpServer = std::make_unique<UdpServer>(UDP_PORT);
+    EXIT_IF_NULL(udpServer,
+                 E_OUTOFMEMORY,
+                 Cleanup);
+    
+    gossipProtocol = std::make_unique<GossipProtocol>(std::move(udpClient),
+                                                      std::move(udpServer));
     EXIT_IF_NULL(gossipProtocol,
                  E_OUTOFMEMORY,
                  Cleanup);

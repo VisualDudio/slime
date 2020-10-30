@@ -51,11 +51,11 @@ public:
     
     virtual
     ERROR_CODE
-    AddToMulticastGroup() = 0;
+    AddToMulticastGroup(const std::string& IpAddress, uint16_t Port) = 0;
     
     virtual
     ERROR_CODE
-    RemoveFromMulticastGroup() = 0;
+    RemoveFromMulticastGroup(const std::string& IpAddress, uint16_t Port) = 0;
     
     virtual
     ERROR_CODE

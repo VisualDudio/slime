@@ -17,6 +17,7 @@ Abstract:
 //
 
 #include <memory>
+#include <unordered_set>
 
 #include "IMulticastProtocol.h"
 #include "BlockingQueue.h"
@@ -33,14 +34,15 @@ Abstract:
 //
 
 class UdpClient;
-//class UdpServer;
+class UdpServer;
 
 class GossipProtocol : public IMulticastProtocol
 {
 public:
     
     // Constructor
-    GossipProtocol(std::unique_ptr<UdpClient> UdpClient);
+    GossipProtocol(std::unique_ptr<UdpClient> UdpClient,
+                   std::unique_ptr<UdpServer> UdpServer);
     
     // Destructor
     ~GossipProtocol();
@@ -59,10 +61,10 @@ public:
     Stop() override;
     
     ERROR_CODE
-    AddToMulticastGroup() override;
+    AddToMulticastGroup(const std::string& IpAddress, uint16_t Port) override;
     
     ERROR_CODE
-    RemoveFromMulticastGroup() override;
+    RemoveFromMulticastGroup(const std::string& IpAddress, uint16_t Port) override;
     
     ERROR_CODE
     Multicast(const Message& Message) override;
@@ -73,6 +75,12 @@ public:
 private:
     ERROR_CODE
     HandleIncomingMessages();
+    
+    ERROR_CODE
+    Deliver(const Message& Message);
+    
+    ERROR_CODE
+    OnReceive(const Message& Message);
     
     ERROR_CODE
     InitiateGossip(const std::string& Payload);
@@ -87,10 +95,10 @@ private:
     std::unique_ptr<UdpClient> m_UdpClient;
 
     // An owning pointer to a UDP server
-    //std::unique_ptr<UdpServer> m_UdpServer;
+    std::unique_ptr<UdpServer> m_UdpServer;
     
     // The set of members to multicast to
-    std::vector<std::string> m_MulticastGroup;
-
-    BlockingQueue<std::string> m_DeliveredMessages;
+    std::unordered_set<std::string> m_MulticastGroup;
+    
+    BlockingQueue<Message> m_DeliveredMessages;
 };

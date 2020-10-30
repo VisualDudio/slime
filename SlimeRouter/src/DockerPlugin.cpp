@@ -17,6 +17,7 @@ Abstract:
 #include "DockerPlugin.h"
 #include "httplib.h"
 #include "json.hpp"
+#include "IMembershipManager.h"
 
 //
 // ---------------------------------------------------------------------- Definitions
@@ -70,7 +71,7 @@ Return Value:
 
 
 ERROR_CODE
-DockerPlugin::Init()
+DockerPlugin::Init(IMembershipManager& MembershipManager)
 /*++
 
 Routine Description:
@@ -101,57 +102,57 @@ Return Value:
 
     m_HttpServer->Post("/NetworkDriver.CreateNetwork", [](const httplib::Request& Request, httplib::Response& Response)
     {
-        auto body = nlohmann::json::parse(Request.body);
+        nlohmann::json body = nlohmann::json::parse(Request.body);
         std::cout << body << std::endl;
         Response.set_content("{}", "application/json");
     });
 
     m_HttpServer->Post("/NetworkDriver.DeleteNetwork", [](const httplib::Request& Request, httplib::Response& Response)
     {
-        auto body = nlohmann::json::parse(Request.body);
+        nlohmann::json body = nlohmann::json::parse(Request.body);
         std::cout << body << std::endl;
         Response.set_content("{}", "application/json");
     });
 
     m_HttpServer->Post("/NetworkDriver.CreateEndpoint", [](const httplib::Request& Request, httplib::Response& Response)
     {
-        auto body = nlohmann::json::parse(Request.body);
+        nlohmann::json body = nlohmann::json::parse(Request.body);
         std::cout << body << std::endl;
         Response.set_content("{}", "application/json");
     });
 
     m_HttpServer->Post("/NetworkDriver.DeleteEndpoing", [](const httplib::Request& Request, httplib::Response& Response)
     {
-        auto body = nlohmann::json::parse(Request.body);
+        nlohmann::json body = nlohmann::json::parse(Request.body);
         std::cout << body << std::endl;
         Response.set_content("{}", "application/json");
     });
 
     m_HttpServer->Post("/NetworkDriver.Join", [](const httplib::Request& Request, httplib::Response& Response)
     {
-        auto body = nlohmann::json::parse(Request.body);
+        nlohmann::json body = nlohmann::json::parse(Request.body);
         std::cout << body << std::endl;
         Response.set_content("{}", "application/json");
     });
 
     m_HttpServer->Post("/NetworkDriver.Leave", [](const httplib::Request& Request, httplib::Response& Response)
     {
-        auto body = nlohmann::json::parse(Request.body);
+        nlohmann::json body = nlohmann::json::parse(Request.body);
         std::cout << body << std::endl;
         Response.set_content("{}", "application/json");
     });
 
-    m_HttpServer->Post("/NetworkDriver.DiscoverNew", [](const httplib::Request& Request, httplib::Response& Response)
+    m_HttpServer->Post("/NetworkDriver.DiscoverNew", [&MembershipManager](const httplib::Request& Request, httplib::Response& Response)
     {
-        auto body = nlohmann::json::parse(Request.body);
-        std::cout << body << std::endl;
+        nlohmann::json body = nlohmann::json::parse(Request.body);
+        MembershipManager.OnJoin(body["DiscoveryData"]["Address"]);
         Response.set_content("{}", "application/json");
     });
 
-    m_HttpServer->Post("/NetworkDriver.DiscoverDelete", [](const httplib::Request& Request, httplib::Response& Response)
+    m_HttpServer->Post("/NetworkDriver.DiscoverDelete", [&MembershipManager](const httplib::Request& Request, httplib::Response& Response)
     {
-        auto body = nlohmann::json::parse(Request.body);
-        std::cout << body << std::endl;
+        nlohmann::json body = nlohmann::json::parse(Request.body);
+        MembershipManager.OnLeave(body["DiscoveryData"]["Address"]);
         Response.set_content("{}", "application/json");
     });
     

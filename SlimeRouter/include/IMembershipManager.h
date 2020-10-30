@@ -2,11 +2,11 @@
 
 Module Name:
 
-    UdpClient.h
+    IMembershipManager.h
 
 Abstract:
 
-    Class declaration for a UDP client.
+    Interface definition for a membership manager.
 
 --*/
 
@@ -16,12 +16,7 @@ Abstract:
 // ---------------------------------------------------------------------- Includes
 //
 
-#include <string>
-
-#include "Message.h"
 #include "Error.h"
-
-// #include "IClient.h"
 
 //
 // ---------------------------------------------------------------------- Definitions
@@ -33,28 +28,22 @@ Abstract:
 // ---------------------------------------------------------------------- Classes
 //
 
-class UdpClient
+class IMembershipManager
 {
 public:
-    // Constructor
-    UdpClient();
-
     // Destructor
-    ~UdpClient();
+    virtual
+    ~IMembershipManager() = default;
 
     //
     // Public Methods
     //
     
+    virtual
     ERROR_CODE
-    Init();
-    
+    OnJoin(const std::string& IpAddress) = 0;
+
+    virtual
     ERROR_CODE
-    Send(const Message& Message,
-         const std::string& IpAddress,
-         const uint16_t Port);
-    
-private:
-    int m_ClientSocket;
-// BlockingQueue<std::string> m_OutgoingMessages;
+    OnLeave(const std::string& IpAddress) = 0;
 };

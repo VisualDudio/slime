@@ -30,6 +30,8 @@ Abstract:
 // ---------------------------------------------------------------------- Classes
 //
 
+class Message;
+
 class UdpServer
 {
 public:
@@ -53,7 +55,7 @@ public:
     Stop();
     
     ERROR_CODE
-    GetNextIncomingMessage();
+    GetNextIncomingMessage(std::string* Message);
 
 private:
 
