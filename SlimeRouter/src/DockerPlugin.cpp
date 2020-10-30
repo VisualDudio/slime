@@ -92,7 +92,11 @@ Return Value:
 {
     ERROR_CODE ec = S_OK;
 
+<<<<<<< HEAD
     m_HttpServer->Post("/Plugin.Activate", [](const httplib::Request&, httplib::Response& Response)
+=======
+    m_HttpServer->Post("/Plugin.Activate", [](const httplib::Request& Request, httplib::Response& Response)
+>>>>>>> dee7e28dd7415d8e1d420fb7957af14a04102e6f
     {
         Response.set_content("{\"Implements\":[\"NetworkDriver\"]}", "application/json");
     });
