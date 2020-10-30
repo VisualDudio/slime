@@ -91,11 +91,9 @@ Return Value:
 --*/
 {
     ERROR_CODE ec = S_OK;
-    
-    m_HttpServer->Post("/Plugin.Activate", [](const httplib::Request& Request, httplib::Response& Response)
+
+    m_HttpServer->Post("/Plugin.Activate", [](const httplib::Request&, httplib::Response& Response)
     {
-        nlohmann::json body = nlohmann::json::parse(Request.body);
-        std::cout << body << std::endl;
         Response.set_content("{\"Implements\":[\"NetworkDriver\"]}", "application/json");
     });
 
