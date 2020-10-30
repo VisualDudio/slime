@@ -98,6 +98,9 @@ Return Value:
     
     EXIT_IF_FAILED(UnixServer::Init(),
                    Cleanup);
+
+    EXIT_IF_FAILED(m_MappingManager->Init(),
+                   Cleanup);
     
 Cleanup:
     return ec;
