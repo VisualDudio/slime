@@ -9,9 +9,11 @@
 #define E_INVALIDARG -2
 #define E_OUTOFMEMORY -3
 
-#define UNREFERENCED_PARAMETER(p) ((void)(p));
+#define UNREFERENCED_PARAMETER(p) ((void)(p))
 #define SUCCEEDED(e) ((e) >= S_OK)
 #define FAILED(e) (!SUCCEEDED(e))
+
+#define LOG(...) fprintf(stderr, ##__VA_ARGS__)
 
 #define EXIT_IF_FAILED(e, l)                    \
     do                                          \
@@ -52,10 +54,13 @@
     {                                           \
         if (FAILED((ec = (e))))                 \
         {                                       \
-            fprintf(stderr, fmt, __VA_ARGS__);  \
+            LOG("TRACE: %s:%d:%s(): " fmt,      \
+            __FILE__, __LINE__, __func__,       \
+            ##__VA_ARGS__);                     \
             goto l;                             \
         }                                       \
     }                                           \
     while (0)
+
 
 typedef int32_t ERROR_CODE;

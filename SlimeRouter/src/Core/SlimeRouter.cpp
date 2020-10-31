@@ -27,7 +27,7 @@ Abstract:
 // ---------------------------------------------------------------------- Definitions
 //
 
-#define UNIX_SERVER_PATH "/slime/SlimeRouter.sock"
+#define UNIX_SERVER_PATH "/home/ombarki2/slime/SlimeRouter.sock"
 #define UDP_PORT 8080
 
 //
@@ -140,7 +140,7 @@ Return Value:
     
     TRACE_IF_FAILED(m_RouterServer->Init(),
                     Cleanup,
-                    "SlimeRouter::Init - Failed to initialize m_RouterServer! 0x%x", ec);
+                    "Failed to initialize m_RouterServer! 0x%x\n", ec);
     
 Cleanup:
     return ec;

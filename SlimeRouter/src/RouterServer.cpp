@@ -98,11 +98,11 @@ Return Value:
     
     TRACE_IF_FAILED(UnixServer::Init(),
                     Cleanup,
-                    "RouterServer::Init - Failed to initialize unix server! 0x%x", ec);
+                    "Failed to initialize unix server! 0x%x\n", ec);
 
     TRACE_IF_FAILED(m_MappingManager->Init(),
                     Cleanup,
-                    "RouterServer::Init - Failed to initialize mapping manager! 0x%x", ec);
+                    "Failed to initialize mapping manager! 0x%x\n", ec);
     
 Cleanup:
     return ec;
@@ -130,11 +130,11 @@ Return Value:
     
     TRACE_IF_FAILED(UnixServer::Start(),
                     Cleanup,
-                    "RouterServer::Start - Failed to start unix server! 0x%x", ec);
+                    "Failed to start unix server! 0x%x\n", ec);
     
     TRACE_IF_FAILED(m_MappingManager->Start(),
                     Cleanup,
-                    "RouterServer::Start - Failed to start mappping manager! 0x%x", ec);
+                    "Failed to start mappping manager! 0x%x\n", ec);
 Cleanup:
     return ec;
 }
@@ -161,11 +161,11 @@ Return Value:
 
     TRACE_IF_FAILED(UnixServer::Stop(),
                     Cleanup,
-                    "RouterServer::Stop - Failed to stop unix server! 0x%x", ec);
+                    "Failed to stop unix server! 0x%x\n", ec);
     
     TRACE_IF_FAILED(m_MappingManager->Stop(),
                     Cleanup,
-                    "RouterServer::Stop - Failed to stop mapping manager! 0x%x", ec);
+                    "Failed to stop mapping manager! 0x%x\n", ec);
     
 Cleanup:    
     return ec;

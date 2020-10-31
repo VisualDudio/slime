@@ -38,10 +38,10 @@ int main(void)
     slimeRouter = std::make_unique<SlimeRouter>();
     TRACE_IF_FAILED(slimeRouter->Init(),
                     Cleanup,
-                    "main: Failed to initialize SlimeRouter %x.\n", ec);
+                    "Failed to initialize SlimeRouter 0x%x.\n", ec);
     TRACE_IF_FAILED(slimeRouter->Start(),
                     Cleanup,
-                    "main: Failed to start SlimeRouter %x.\n", ec);
+                    "Failed to start SlimeRouter 0x%x.\n", ec);
 
     while (1)
     {
