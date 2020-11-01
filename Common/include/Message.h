@@ -26,13 +26,13 @@ struct SocketRequest
 
 struct SocketResponse
 {
-    int HostSocket;
+    int Status;
 };
 
 struct BindRequest
 {
-    uint32_t IpAddress;
-    uint16_t Port;
+    uint32_t VirtualIpAddress;
+    uint16_t VirtualPort;
 };
 
 struct BindResponse
@@ -47,7 +47,7 @@ struct AcceptRequest
 
 struct AcceptResponse
 {
-    int ClientSocket;
+    int Status;
 };
 
 struct ConnectRequest

@@ -1,14 +1,38 @@
-CXX = /usr/bin/g++
-SRC = socket.c msg.c
-OBJ = socket.o msg.o
+CXX = /opt/rh/devtoolset-8/root/usr/bin/g++
+CXXFLAGS = -std=c++17 -pedantic-errors -Wall -Wextra -Werror -pthread -fPIC
+LDFLAGS  := -ldl -shared -Wl,--no-undefined
+BUILD    := ./build
+OBJ_DIR  := $(BUILD)/obj
+BIN_DIR  := $(BUILD)/bin
+TARGET   := SlimeSocket
+INCLUDE  := -Iinclude/ -Ilib/ -I../Common/include/
+SRC      := $(wildcard src/*.cpp) \
+            $(wildcard ../Common/src/*.cpp)
 
-all: $(SRC)
-	$(CXX) -c -g -O3 -Wall -fPIC $(SRC)
-	$(CXX) -g -shared -o SlimeSocket.so $(OBJ) -ldl
+OBJECTS  := $(SRC:%.cpp=$(OBJ_DIR)/%.o)
 
-debug: $(SRC)
-	$(CXX) -c -g -DSLIM_DEBUG -O3 -Wall -fPIC $(SRC)
-	$(CXX) -g -shared -o SlimeSocket.so $(OBJ) -ldl
+all: build $(BIN_DIR)/$(TARGET)
+
+$(OBJ_DIR)/%.o: %.cpp
+	@mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) $(INCLUDE) -c $< -o $@ $(LDFLAGS)
+
+$(BIN_DIR)/$(TARGET): $(OBJECTS)
+	@mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) -o $(BIN_DIR)/$(TARGET).so $^ $(LDFLAGS)
+
+.PHONY: all build clean debug release
+
+build:
+	@mkdir -p $(BIN_DIR)
+	@mkdir -p $(OBJ_DIR)
+
+debug: CXXFLAGS += -DDEBUG -g
+debug: all
+
+release: CXXFLAGS += -O2
+release: all
 
 clean:
-	rm -f *.so *.o
+	-@rm -rvf $(OBJ_DIR)/*
+	-@rm -rvf $(BIN_DIR)/*

@@ -18,12 +18,12 @@ namespace NetworkUtils
 {
     int
     WriteAllToSocket(int Socket,
-                     const char* Data,
+                     const void* Data,
                      size_t Count);
 
     int
     ReadAllFromSocket(int Socket,
-                      char* Data,
+                      void* Data,
                       size_t Count);
 
     ERROR_CODE

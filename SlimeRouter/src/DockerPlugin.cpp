@@ -147,6 +147,7 @@ Return Value:
     m_HttpServer->Post("/NetworkDriver.DiscoverNew", [&MembershipManager](const httplib::Request& Request, httplib::Response& Response)
     {
         nlohmann::json body = nlohmann::json::parse(Request.body);
+        std::cerr << body << std::endl;
         MembershipManager.OnJoin(body["DiscoveryData"]["Address"]);
         Response.set_content("{}", "application/json");
     });
@@ -154,6 +155,7 @@ Return Value:
     m_HttpServer->Post("/NetworkDriver.DiscoverDelete", [&MembershipManager](const httplib::Request& Request, httplib::Response& Response)
     {
         nlohmann::json body = nlohmann::json::parse(Request.body);
+        std::cerr << body << std::endl;
         MembershipManager.OnLeave(body["DiscoveryData"]["Address"]);
         Response.set_content("{}", "application/json");
     });

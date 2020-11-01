@@ -259,26 +259,28 @@ Return Value:
     ERROR_CODE ec = S_OK;
     SocketResponse response = {0};
     
-    response.HostSocket = socket(AF_INET,
-                                 SocketRequest.Type,
-                                 SocketRequest.Protocol);
+    response.Status = socket(AF_INET,
+                             SocketRequest.Type,
+                             SocketRequest.Protocol);
 
-    if (response.HostSocket < 0)
+    if (response.Status < 0)
     {
-        response.HostSocket = -errno;
+        response.Status = -errno;
     }
     else
     {
-        EXIT_IF_FAILED(NetworkUtils::WriteFileDescriptorToUnixSocket(ClientSocket,
-                                                                     response.HostSocket),
-                   Cleanup);
-        close(response.HostSocket);
+        TRACE_IF_FAILED(NetworkUtils::WriteFileDescriptorToUnixSocket(ClientSocket,
+                                                                      response.Status),
+                        Cleanup,
+                        "Failed to send file descriptor! 0x%x", ec);
+        close(response.Status);
     }
     
-    EXIT_IF_FAILED(NetworkUtils::WriteAllToSocket(ClientSocket,
-                                                  (char*)&response,
-                                                  sizeof(response)),
-                   Cleanup);
+    TRACE_IF_FAILED(NetworkUtils::WriteAllToSocket(ClientSocket,
+                                                   &response,
+                                                   sizeof(response)),
+                    Cleanup,
+                    "Failed to send response to client! 0x%x", ec);
     
 Cleanup:
     return ec;
@@ -314,15 +316,17 @@ Return Value:
     AddressMapping addressMapping;
     
     // Get file descriptor
-    EXIT_IF_FAILED(NetworkUtils::ReadFileDescriptorFromUnixSocket(ClientSocket,
-                                                                  &hostSocket),
-                   Cleanup);
+    TRACE_IF_FAILED(NetworkUtils::ReadFileDescriptorFromUnixSocket(ClientSocket,
+                                                                   &hostSocket),
+                    Cleanup,
+                    "Failed to receive file descriptor! 0x%x", ec);
 
     // Perform bind
     hostAddress.sin_family = AF_INET;
     hostAddress.sin_port = 0;
-    EXIT_IF_FAILED(NetworkUtils::GetIpAddress(&hostAddress.sin_addr.s_addr),
-                   Cleanup);
+    TRACE_IF_FAILED(NetworkUtils::GetIpAddress(&hostAddress.sin_addr.s_addr),
+                    Cleanup,
+                    "Failed to get IP address! 0x%x", ec);
 
     response.Status = bind(hostSocket,
                            (struct sockaddr*)&hostAddress,
@@ -335,10 +339,11 @@ Return Value:
     }
     
     // Send response to client
-    EXIT_IF_FAILED(NetworkUtils::WriteAllToSocket(ClientSocket,
-                                                  (char*)&response,
-                                                  sizeof(response)),
-                   Cleanup);
+    TRACE_IF_FAILED(NetworkUtils::WriteAllToSocket(ClientSocket,
+                                                   &response,
+                                                   sizeof(response)),
+                    Cleanup,
+                    "Failed to send response to client! 0x%x", ec);
     
     // Find port and create mapping
     hostAddressLength = sizeof(hostAddress);
@@ -346,10 +351,10 @@ Return Value:
                 (struct sockaddr*)&hostAddress,
                 &hostAddressLength);
     
-    addressMapping.VirtualIpAddress = BindRequest.IpAddress;
-    addressMapping.VirtualPort = BindRequest.Port;
-    addressMapping.HostIpAddress = BindRequest.IpAddress;
-    addressMapping.HostPort = BindRequest.Port;
+    addressMapping.VirtualIpAddress = BindRequest.VirtualIpAddress;
+    addressMapping.VirtualPort = BindRequest.VirtualPort;
+    addressMapping.HostIpAddress = hostAddress.sin_addr.s_addr;
+    addressMapping.HostPort = hostAddress.sin_port;
     
     m_MappingManager->AddMapping(addressMapping,
                                  true);
@@ -383,36 +388,39 @@ Return Value:
     int hostSocket = 0;
     int originalFlags = 0;
     
-    EXIT_IF_FAILED(NetworkUtils::ReadFileDescriptorFromUnixSocket(ClientSocket,
-                                                                  &hostSocket),
-                   Cleanup);
+    TRACE_IF_FAILED(NetworkUtils::ReadFileDescriptorFromUnixSocket(ClientSocket,
+                                                                   &hostSocket),
+                    Cleanup,
+                    "Failed to receive file descriptor 0x%x", ec);
     
     originalFlags = fcntl(hostSocket, F_GETFL);
     fcntl(hostSocket, F_SETFL, originalFlags & ~O_NONBLOCK);
 
-    response.ClientSocket = accept4(hostSocket,
-                                    NULL,
-                                    NULL,
-                                    AcceptRequest.Flags);
+    response.Status = accept4(hostSocket,
+                              NULL,
+                              NULL,
+                              AcceptRequest.Flags);
 
     fcntl(hostSocket, F_SETFL, originalFlags);
     
-    if (response.ClientSocket < 0)
+    if (response.Status < 0)
     {
-        response.ClientSocket = -errno;
+        response.Status = -errno;
     }
     else
     {
-        EXIT_IF_FAILED(NetworkUtils::WriteFileDescriptorToUnixSocket(ClientSocket,
-                                                                     response.ClientSocket),
-                       Cleanup);
-        close(response.ClientSocket);
+        TRACE_IF_FAILED(NetworkUtils::WriteFileDescriptorToUnixSocket(ClientSocket,
+                                                                      response.Status),
+                        Cleanup,
+                        "Failed to send file descriptor 0x%x!", ec);
+        close(response.Status);
     }
     
-    EXIT_IF_FAILED(NetworkUtils::WriteAllToSocket(ClientSocket,
-                                                  (char*)&response,
-                                                  sizeof(response)),
-                   Cleanup);
+    TRACE_IF_FAILED(NetworkUtils::WriteAllToSocket(ClientSocket,
+                                                   &response,
+                                                   sizeof(response)),
+                    Cleanup,
+                    "Failed to send response to client! 0x%x", ec);
     
 Cleanup:
     return ec;
@@ -442,15 +450,17 @@ Return Value:
     int hostSocket = 0;
     struct sockaddr_in hostAddress;
     
-    EXIT_IF_FAILED(NetworkUtils::ReadFileDescriptorFromUnixSocket(ClientSocket,
-                                                                  &hostSocket),
-                   Cleanup);
+    TRACE_IF_FAILED(NetworkUtils::ReadFileDescriptorFromUnixSocket(ClientSocket,
+                                                                   &hostSocket),
+                    Cleanup,
+                    "Failed to receive file descriptor! 0x%x", ec);
 
-    EXIT_IF_FAILED(m_MappingManager->PerformLookup(ConnectRequest.VirtualIpAddress,
-                                                   ConnectRequest.VirtualPort,
-                                                   &hostAddress.sin_addr.s_addr,
-                                                   &hostAddress.sin_port),
-                   Cleanup);
+    TRACE_IF_FAILED(m_MappingManager->PerformLookup(ConnectRequest.VirtualIpAddress,
+                                                    ConnectRequest.VirtualPort,
+                                                    &hostAddress.sin_addr.s_addr,
+                                                    &hostAddress.sin_port),
+                    Cleanup,
+                    "Failed to perform mapping lookup! 0x%x", ec);
     
 
     hostAddress.sin_family = AF_INET;

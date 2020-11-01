@@ -1,13 +1,13 @@
 #include "NetworkUtils.h"
 
-int NetworkUtils::WriteAllToSocket(int Socket, const char* Data, size_t Count)
+int NetworkUtils::WriteAllToSocket(int Socket, const void* Data, size_t Count)
 {
     ssize_t totalBytes = 0;
     ssize_t bytesWritten = 0;
     
     while (totalBytes < (ssize_t)Count)
     {
-        bytesWritten = send(Socket, Data + totalBytes, Count - totalBytes, MSG_NOSIGNAL);
+        bytesWritten = send(Socket, (char*)Data + totalBytes, Count - totalBytes, MSG_NOSIGNAL);
 
         if (bytesWritten > 0)
         {
@@ -19,6 +19,7 @@ int NetworkUtils::WriteAllToSocket(int Socket, const char* Data, size_t Count)
         }
         else
         {
+            LOG("Failed to write to socket! 0x%x\n", errno);
             break;
         }
     }
@@ -26,14 +27,14 @@ int NetworkUtils::WriteAllToSocket(int Socket, const char* Data, size_t Count)
     return totalBytes;
 }
 
-int NetworkUtils::ReadAllFromSocket(int Socket, char* Data, size_t Count)
+int NetworkUtils::ReadAllFromSocket(int Socket, void* Data, size_t Count)
 {
     ssize_t totalBytes = 0;
     ssize_t bytesRead = 0;
     
     while (totalBytes < (ssize_t)Count)
     {
-        bytesRead = read(Socket, Data + totalBytes, Count - totalBytes);
+        bytesRead = read(Socket, (char*)Data + totalBytes, Count - totalBytes);
 
         if (bytesRead > 0)
         {
@@ -45,6 +46,7 @@ int NetworkUtils::ReadAllFromSocket(int Socket, char* Data, size_t Count)
         }
         else
         {
+            LOG("Failed to read from socket! 0x%x\n", errno);
             break;
         }
     }
@@ -59,8 +61,9 @@ NetworkUtils::GetIpAddress(uint32_t* IpAddress)
     char hostname_buffer[256];
     struct hostent* host_entry;
 
-    EXIT_IF_FAILED(gethostname(hostname_buffer, sizeof(hostname_buffer)),
-                   Cleanup);
+    TRACE_IF_FAILED(gethostname(hostname_buffer, sizeof(hostname_buffer)),
+                    Cleanup,
+                    "Failed to get hostname! 0x%x\n", errno);
     
     host_entry = gethostbyname(hostname_buffer);
     EXIT_IF_NULL(host_entry,
@@ -97,9 +100,9 @@ NetworkUtils::ReadFileDescriptorFromUnixSocket(int Socket, int* FileDescriptor)
     msg.msg_control = cmsgu.control;
     msg.msg_controllen = sizeof(cmsgu.control);
     
-    EXIT_IF_TRUE(recvmsg(Socket, &msg, 0) < 0,
-                 E_FAIL,
-                 Cleanup);
+    TRACE_IF_FAILED(recvmsg(Socket, &msg, 0),
+                    Cleanup,
+                    "Failed to receive control information! 0x%x\n", errno);
     
     cmsg = CMSG_FIRSTHDR(&msg);
     
@@ -164,8 +167,9 @@ NetworkUtils::WriteFileDescriptorToUnixSocket(int Socket, int FileDescriptor)
         msg.msg_controllen = 0;
     }
 
-    EXIT_IF_FAILED(sendmsg(Socket, &msg, 0),
-                   Cleanup);
+    TRACE_IF_FAILED(sendmsg(Socket, &msg, 0),
+                    Cleanup,
+                    "Failed to send control message! 0x%x\n", errno);
 Cleanup:    
     return ec;
 }

@@ -208,6 +208,12 @@ Return Value:
     
     m_AddressLookup.insert({virtualAddress, AddressMapping});
     
+    LOG("Mapping <%u, %hu> -> <%u, %hu> added\n",
+        AddressMapping.VirtualIpAddress,
+        AddressMapping.VirtualPort,
+        AddressMapping.HostIpAddress,
+        AddressMapping.HostPort);
+    
     if (ShouldMulticast)
     {
         multicastMessage.Header.Id = MESSAGE_TYPE_NEW_MAPPING;
@@ -404,6 +410,7 @@ Return Value:
         EXIT_IF_FAILED(m_MulticastProtocol->GetNextDeliveredMessage(&message),
                        Cleanup);
         
+        LOG("Received message!\n");
         EXIT_IF_FAILED(ProcessIncomingMessage(message),
                        Cleanup);
     }

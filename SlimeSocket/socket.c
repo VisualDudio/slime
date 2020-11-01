@@ -103,7 +103,7 @@ void getenv_options(void) {
     }
 }
 
-static int init_preload(void) {
+__attribute__((constructor)) int init_preload(void) { 
     static int init;
     // quick check without lock
     if (init) {
@@ -188,9 +188,6 @@ msg_t *xfer_msg(msg_t *req, const char *call) {
 }
 
 int _socket(int domain, int type, int protocol) {
-    if (init_preload() < 0) {
-        return -1;
-    }
     GLOBAL_LOCK;
 
     if ((domain == AF_INET || domain == AF_INET6) && (type & SOCK_STREAM) && (!protocol || protocol == IPPROTO_TCP)) {

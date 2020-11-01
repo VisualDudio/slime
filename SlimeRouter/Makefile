@@ -5,9 +5,10 @@ BUILD    := ./build
 OBJ_DIR  := $(BUILD)/obj
 BIN_DIR  := $(BUILD)/bin
 TARGET   := SlimeRouter
-INCLUDE  := -Iinclude/ -Ilib/
+INCLUDE  := -Iinclude/ -Ilib/ -I../Common/include/
 SRC      := $(wildcard src/Core/*.cpp) \
-			$(wildcard src/*.cpp)
+		    $(wildcard src/*.cpp)      \
+            $(wildcard ../Common/src/*.cpp)
 
 OBJECTS  := $(SRC:%.cpp=$(OBJ_DIR)/%.o)
 
