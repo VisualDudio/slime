@@ -208,6 +208,12 @@ Return Value:
     
     m_AddressLookup.insert({virtualAddress, AddressMapping});
     
+    LOG("Mapping <%u, %hu> -> <%u, %hu> added\n",
+        AddressMapping.VirtualIpAddress,
+        AddressMapping.VirtualPort,
+        AddressMapping.HostIpAddress,
+        AddressMapping.HostPort);
+    
     if (ShouldMulticast)
     {
         multicastMessage.Header.Id = MESSAGE_TYPE_NEW_MAPPING;

@@ -12,11 +12,13 @@ typedef enum SOCKET_FUNCTION_CALL
     SOCKET_GETSOCKNAME
 } SOCKET_FUNCTION_CALL;
 
-struct epoll_calls {
+struct epoll_calls
+{
     int (*epoll_ctl) (int epfd, int op, int fd, struct epoll_event *event);
 };
 
-struct socket_calls {
+struct socket_calls
+{
     int (*socket)(int domain, int type, int protocol);
     int (*bind)(int socket, const struct sockaddr *addr, socklen_t addrlen);
     int (*listen)(int socket, int backlog);
@@ -33,9 +35,9 @@ struct socket_calls {
     int (*close)(int socket);
 };
 
-int connect_router();
-
-typedef struct {
-    bool normal;
-    int host_fd;
-} fd_info_t;
+typedef struct
+{
+    int overlay_socket;
+    int host_socket;
+    bool is_normal;
+} socket_info_t;

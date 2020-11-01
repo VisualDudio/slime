@@ -237,7 +237,7 @@ Return Value:
     while (1)
 	{
 		EXIT_IF_TRUE(NetworkUtils::ReadAllFromSocket(ClientSocket,
-                                                     (char*)&message.Header,
+                                                     &message.Header,
                                                      sizeof(MessageHeader)) == 0,
                      S_OK,
                      Cleanup);
@@ -245,7 +245,7 @@ Return Value:
         message.Body.resize(message.Header.Size);
         
         EXIT_IF_TRUE(NetworkUtils::ReadAllFromSocket(ClientSocket,
-                                                     (char*)message.Body.data(),
+                                                     message.Body.data(),
                                                      message.Header.Size) == 0,
                      S_OK,
                      Cleanup);

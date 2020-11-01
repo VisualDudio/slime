@@ -26,7 +26,7 @@ struct SocketRequest
 
 struct SocketResponse
 {
-    int HostSocket;
+    int Status;
 };
 
 struct BindRequest
@@ -47,7 +47,7 @@ struct AcceptRequest
 
 struct AcceptResponse
 {
-    int ClientSocket;
+    int Status;
 };
 
 struct ConnectRequest
