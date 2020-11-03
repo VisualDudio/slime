@@ -21,11 +21,14 @@ $(BIN_DIR)/$(TARGET): $(OBJECTS)
 	@mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) -o $(BIN_DIR)/$(TARGET).so $^ $(LDFLAGS)
 
-.PHONY: all build clean debug release
+.PHONY: all build clean debug release measure
 
 build:
 	@mkdir -p $(BIN_DIR)
 	@mkdir -p $(OBJ_DIR)
+
+measure: CXXFLAGS += -DMEASURE
+measure: all
 
 debug: CXXFLAGS += -DDEBUG -g
 debug: all
