@@ -99,7 +99,7 @@ Return Value:
 
     m_HttpServer->Post("/NetworkDriver.GetCapabilities", [](const httplib::Request&, httplib::Response& Response)
     {
-        Response.set_content("{\"Scope\":\"local\",\"ConnectivityScope\":\"global\"}", "application/json");
+        Response.set_content("{\"Scope\":\"global\",\"ConnectivityScope\":\"global\"}", "application/json");
     });
 
     m_HttpServer->Post("/NetworkDriver.CreateNetwork", [](const httplib::Request& Request, httplib::Response& Response)
