@@ -452,6 +452,11 @@ Return Value:
     ConnectResponse response = {0};
     int hostSocket = 0;
     struct sockaddr_in hostAddress;
+#ifdef MEASURE
+    struct timespec start;
+	struct timespec end;
+    double elapsed_time = 0;
+#endif
     
     TRACE_IF_FAILED(NetworkUtils::ReadFileDescriptorFromUnixSocket(ClientSocket,
                                                                    &hostSocket),
@@ -467,11 +472,7 @@ Return Value:
     
 
     hostAddress.sin_family = AF_INET;
-#ifdef MEASURE
-    struct timespec start;
-	struct timespec end;
-    double elapsed_time = 0;
-    
+#ifdef MEASURE   
 	clock_gettime(CLOCK_MONOTONIC, &start);
 #endif    
     
