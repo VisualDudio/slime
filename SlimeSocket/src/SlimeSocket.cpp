@@ -17,7 +17,7 @@
 #include <arpa/inet.h>
 #include <ifaddrs.h>
 #include <errno.h>
-
+#include <time.h>
 #include <unordered_map>
 
 #include "SlimeSocket.h"
@@ -376,10 +376,17 @@ Cleanup:
 
 int connect(int socket, const struct sockaddr *addr, socklen_t addrlen) {
     LOG("connect called\n");
+    struct timespec start;
+	struct timespec end;
+    double elapsed_time = 0;
+    
+	clock_gettime(CLOCK_MONOTONIC, &start);
     if (FAILED(_connect(socket, (const struct sockaddr_in*)addr, addrlen))) {
         return socket_library.connect(socket, addr, addrlen);
     }
-    
+	clock_gettime(CLOCK_MONOTONIC, &end);    
+    elapsed_time = (double)(end.tv_sec - start.tv_sec) + (double)(end.tv_nsec -	start.tv_nsec)/1.0e9;
+    LOG("Connection setup time: %lf seconds\n", elapsed_time);
     return 0;
 }
 
