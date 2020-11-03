@@ -43,7 +43,7 @@ ERROR_CODE _socket(int domain, int type, int protocol, int* overlay_socket, int*
 
 int socket(int domain, int type, int protocol);
 
-ERROR_CODE _bind(int socket, const struct sockaddr_in *addr, socklen_t addrlen);
+ERROR_CODE _bind(int socket, struct sockaddr_in *addr, socklen_t addrlen);
 
 int bind(int socket, const struct sockaddr *addr, socklen_t addrlen);
 

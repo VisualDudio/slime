@@ -347,9 +347,11 @@ Return Value:
     
     // Find port and create mapping
     hostAddressLength = sizeof(hostAddress);
-    getsockname(hostSocket,
-                (struct sockaddr*)&hostAddress,
-                &hostAddressLength);
+    TRACE_IF_FAILED(getsockname(hostSocket,
+                                (struct sockaddr*)&hostAddress,
+                                &hostAddressLength),
+                    Cleanup,
+                    "Failed to get socket information! 0x%x", errno);
     
     addressMapping.VirtualIpAddress = BindRequest.VirtualIpAddress;
     addressMapping.VirtualPort = BindRequest.VirtualPort;

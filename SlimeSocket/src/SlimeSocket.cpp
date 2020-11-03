@@ -15,6 +15,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <arpa/inet.h>
+#include <ifaddrs.h>
 #include <errno.h>
 
 #include <unordered_map>
@@ -185,16 +186,28 @@ int socket(int domain, int type, int protocol) {
     return overlay_socket;
 }
 
-ERROR_CODE _bind(int socket, const struct sockaddr_in *addr, socklen_t addrlen) {
+ERROR_CODE _bind(int socket, struct sockaddr_in *addr, socklen_t addrlen) {
     ERROR_CODE ec = S_OK;
     BindRequest bind_request;
     BindResponse bind_response;
     MessageHeader message_header;
     const socket_info_t& socket_info = socket_lookup.at(socket);
-
+    
     TRACE_IF_FAILED(socket_library.bind(socket_info.overlay_socket, (struct sockaddr*)addr, addrlen),
                     Cleanup,
-                    "Failed to bind to socket! 0x%x", errno);
+                    "Failed to bind to socket! 0x%x\n", errno);
+    
+    TRACE_IF_FAILED(getsockname(socket_info.overlay_socket,
+                                (struct sockaddr*)addr,
+                                &addrlen),
+                    Cleanup,
+                    "Failed to get socket information! 0x%x\n", errno);
+
+    if (addr->sin_addr.s_addr == INADDR_ANY) {
+        TRACE_IF_FAILED(NetworkUtils::GetIpAddress(&addr->sin_addr.s_addr),
+                        Cleanup,
+                        "Failed to get IP address! 0x%x", ec);
+    }
     
     message_header.Id = REQUEST_TYPE_BIND;
     message_header.Size = sizeof(bind_request);
@@ -204,7 +217,8 @@ ERROR_CODE _bind(int socket, const struct sockaddr_in *addr, socklen_t addrlen) 
                     Cleanup,
                     "Failed to send bind reqeuest! 0x%x\n", errno);
     
-    TRACE_IF_FAILED(NetworkUtils::WriteFileDescriptorToUnixSocket(router_socket, socket_info.host_socket),
+    TRACE_IF_FAILED(NetworkUtils::WriteFileDescriptorToUnixSocket(router_socket,
+                                                                  socket_info.host_socket),
                     Cleanup,
                     "Failed to send file descriptor! 0x%x\n", ec);
     
@@ -224,12 +238,12 @@ int bind(int socket, const struct sockaddr *addr, socklen_t addrlen) {
     LOG("bind called\n");
     int ec = S_OK;
     
-    ec = _bind(socket, (const struct sockaddr_in*)addr, addrlen);
-    
+    // TODO: send request for each interface if INADDR_ANY
+    ec = _bind(socket, (struct sockaddr_in*)addr, addrlen);
     if (FAILED(ec)) {
         ec = socket_library.bind(socket, addr, addrlen);
     }
-    
+
     return ec;
 }
 
