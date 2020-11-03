@@ -474,6 +474,12 @@ Return Value:
     {
         response.Status = -errno;
     }
+
+    TRACE_IF_FAILED(NetworkUtils::WriteAllToSocket(ClientSocket,
+                                                   &response,
+                                                   sizeof(response)),
+                    Cleanup,
+                    "Failed to send response to client! 0x%x", ec);
     
 Cleanup:
     return ec;
