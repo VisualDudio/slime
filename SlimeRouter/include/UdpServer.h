@@ -55,7 +55,7 @@ public:
     Stop();
     
     ERROR_CODE
-    GetNextIncomingMessage(std::string* Message);
+    GetNextIncomingMessage(Message* Message);
 
 private:
 
@@ -65,5 +65,5 @@ private:
     int m_ServerSocket;
     uint16_t m_Port;
     std::thread m_ServerThread;
-    BlockingQueue<std::string> m_IncomingMessages;
+    BlockingQueue<Message> m_IncomingMessages;
 };

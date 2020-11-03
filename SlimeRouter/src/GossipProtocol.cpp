@@ -127,10 +127,14 @@ Return Value:
 --*/
 {
     ERROR_CODE ec = S_OK;
-    
+    std::thread t;
+
     TRACE_IF_FAILED(m_UdpServer->Start(),
                     Cleanup,
                     "Failed to start UDP server! 0x%x", ec);
+
+    t = std::thread([=] { HandleIncomingMessages(); });
+    t.detach();
 Cleanup:
     return ec;
 }
@@ -386,8 +390,9 @@ Return Value:
 {
     ERROR_CODE ec = S_OK;
     
-    EXIT_IF_FAILED(Deliver(Message),
-                   Cleanup);
+    TRACE_IF_FAILED(Deliver(Message),
+                    Cleanup,
+                    "Failed to deliver message! 0x%x\n", ec);
     
 Cleanup:
     return ec;
@@ -413,18 +418,19 @@ Return Value:
 --*/
 {
     ERROR_CODE ec = S_OK;
-    std::string rawMessage;
     Message message;
     
-    while (m_UdpServer->GetNextIncomingMessage(&rawMessage))
+    while (true)
     {
-        std::memcpy(&message.Header, rawMessage.c_str(), sizeof(message.Header));
-        message.Body.resize(message.Header.Size);
-        std::memcpy(message.Body.data(),
-                    rawMessage.c_str() + sizeof(message.Header),
-                    sizeof(message.Header.Size));
-        OnReceive(message);
+        TRACE_IF_FAILED(m_UdpServer->GetNextIncomingMessage(&message),
+                        Cleanup,
+                        "Failed to get incoming message from server! 0x%x\n", ec);
+
+        TRACE_IF_FAILED(OnReceive(message),
+                        Cleanup,
+                        "Failed to execute OnReceive event handler! 0x%x\n", ec);
     }
-    
+
+Cleanup:
     return ec;
 }

@@ -16,6 +16,7 @@ Abstract:
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <cstring>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
@@ -25,7 +26,7 @@ Abstract:
 // ---------------------------------------------------------------------- Definitions
 //
 
-
+#define MAX_MESSAGE_SIZE 1000
 
 //
 // ---------------------------------------------------------------------- Functions
@@ -127,7 +128,8 @@ Return Value:
 {
     ERROR_CODE ec = S_OK;
     struct sockaddr_in serverAddress;
-    
+    char message[MAX_MESSAGE_SIZE] = {0};
+
     serverAddress.sin_family = AF_INET;
     serverAddress.sin_port = htons(Port);
     
@@ -135,13 +137,18 @@ Return Value:
               IpAddress.c_str(),
               &serverAddress.sin_addr);
 
-    EXIT_IF_FAILED(sendto(m_ClientSocket,
-                          &Message,
-                          sizeof(Message),
-                          MSG_CONFIRM,
-                          (struct sockaddr*)&serverAddress,
-                          sizeof(serverAddress)),
-                   Cleanup);
+    memcpy(message, &Message.Header, sizeof(Message.Header));
+    memcpy(message + sizeof(Message.Header), Message.Body.data(), Message.Header.Size);
+
+    TRACE_IF_FAILED(sendto(m_ClientSocket,
+                           message,
+                           Message.Header.Size + sizeof(Message.Header),
+                           MSG_CONFIRM,
+                           (struct sockaddr*)&serverAddress,
+                           sizeof(serverAddress)),
+                    Cleanup,
+                    "Failed to send datagram to server! 0x%x\n", errno);
+    LOG("Sent datagram!\n");
 Cleanup:
     return ec;
 }

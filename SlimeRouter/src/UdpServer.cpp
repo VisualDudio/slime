@@ -17,6 +17,7 @@ Abstract:
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <cstring>
 #include <string>
 
 #include "UdpServer.h"
@@ -166,7 +167,7 @@ Return Value:
 }
 
 ERROR_CODE
-UdpServer::GetNextIncomingMessage(std::string* Message)
+UdpServer::GetNextIncomingMessage(Message* Message)
 /*++
 
 Routine Description:
@@ -211,24 +212,33 @@ Return Value:
 {
     ERROR_CODE ec = S_OK;
     struct sockaddr_in clientAddress;
-    char buffer[MESSAGE_BUFFER_SIZE] = {0};
+    char rawMessage[MESSAGE_BUFFER_SIZE] = {0};
     socklen_t addressLength = 0;
     ssize_t bytesRead = 0;
+    Message message;
     
     addressLength = sizeof(clientAddress);
     
     while (1)
     {
         bytesRead = recvfrom(m_ServerSocket,
-                             buffer,
-                             sizeof(buffer),
+                             rawMessage,
+                             MESSAGE_BUFFER_SIZE,
                              MSG_WAITALL,
                              (struct sockaddr*)&clientAddress,
                              &addressLength);
+        TRACE_IF_FAILED(bytesRead, Cleanup, "Failed to receive datagram from client! 0x%x\n", errno);
         
-        m_IncomingMessages.Push(std::string(buffer, bytesRead));
+        std::memcpy(&message.Header, rawMessage, sizeof(message.Header));
+        message.Body.resize(message.Header.Size);
+        std::memcpy(message.Body.data(),
+                    rawMessage + sizeof(message.Header),
+                    message.Header.Size);
+        
+        m_IncomingMessages.Push(message);
     }
 
+Cleanup:
     return ec;
 }
 
