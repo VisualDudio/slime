@@ -98,9 +98,12 @@ Return Value:
     // TODO: remove hardcode
     m_MulticastGroup.insert("172.22.152.5");
     m_MulticastGroup.insert("172.22.152.6");
-    EXIT_IF_FAILED(m_UdpClient->Init(),
-                   Cleanup);
-    
+    TRACE_IF_FAILED(m_UdpClient->Init(),
+                    Cleanup,
+                    "Failed to initialize UDP client! 0x%x", ec);
+    TRACE_IF_FAILED(m_UdpServer->Init(),
+                    Cleanup,
+                    "Failed to initialize UDP server! 0x%x", ec);
 Cleanup:
     return ec;
 }
@@ -125,7 +128,10 @@ Return Value:
 {
     ERROR_CODE ec = S_OK;
     
-
+    TRACE_IF_FAILED(m_UdpServer->Start(),
+                    Cleanup,
+                    "Failed to start UDP server! 0x%x", ec);
+Cleanup:
     return ec;
 }
 
