@@ -31,8 +31,11 @@ build:
 debug: CXXFLAGS += -DDEBUG -g
 debug: all
 
-release: CXXFLAGS += -O2
+release: CXXFLAGS += -O3
 release: all
+
+measure: CXXFLAGS += -DMEASURE -O3
+measure: all
 
 clean:
 	-@rm -rvf $(OBJ_DIR)/*
