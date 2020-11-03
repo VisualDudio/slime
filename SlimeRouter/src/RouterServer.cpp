@@ -15,6 +15,7 @@ Abstract:
 //
 
 #include <fcntl.h>
+#include <time.h>
 
 #include "RouterServer.h"
 #include "NetworkUtils.h"
@@ -466,9 +467,23 @@ Return Value:
     
 
     hostAddress.sin_family = AF_INET;
+#ifdef MEASURE
+    struct timespec start;
+	struct timespec end;
+    double elapsed_time = 0;
+    
+	clock_gettime(CLOCK_MONOTONIC, &start);
+#endif    
+    
     response.Status = connect(hostSocket,
                               (struct sockaddr*)&hostAddress,
                               sizeof(hostAddress));
+
+#ifdef MEASURE
+    clock_gettime(CLOCK_MONOTONIC, &end);
+    elapsed_time = (double)(end.tv_sec - start.tv_sec) + (double)(end.tv_nsec -	start.tv_nsec)/1.0e9;
+    LOG("Connection setup time: %lf seconds\n", elapsed_time);
+#endif
     
     if (response.Status < 0)
     {

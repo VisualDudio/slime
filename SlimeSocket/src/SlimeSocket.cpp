@@ -376,21 +376,23 @@ Cleanup:
 
 int connect(int socket, const struct sockaddr *addr, socklen_t addrlen) {
     LOG("connect called\n");
+#ifdef MEASURE
     struct timespec start;
 	struct timespec end;
     double elapsed_time = 0;
     
 	clock_gettime(CLOCK_MONOTONIC, &start);
-#ifdef MEASURE
-    socket_library.connect(socket, addr, addrlen);
-#else
+#endif
+
     if (FAILED(_connect(socket, (const struct sockaddr_in*)addr, addrlen))) {
         return socket_library.connect(socket, addr, addrlen);
     }
-#endif
+
+#ifdef MEASURE
 	clock_gettime(CLOCK_MONOTONIC, &end);    
     elapsed_time = (double)(end.tv_sec - start.tv_sec) + (double)(end.tv_nsec -	start.tv_nsec)/1.0e9;
-    LOG("Connection setup time: %lf seconds\n", elapsed_time);
+    LOG("Connection setup time: %lf s\n", elapsed_time);
+#endif
     return 0;
 }
 
