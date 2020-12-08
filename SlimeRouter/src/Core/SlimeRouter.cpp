@@ -27,7 +27,7 @@ Abstract:
 // ---------------------------------------------------------------------- Definitions
 //
 
-#define UNIX_SERVER_PATH "/home/ombarki2/slime/SlimeRouter.sock"
+#define UNIX_SERVER_PATH "/home/SlimeRouter.sock"
 #define UDP_PORT 8080
 
 //

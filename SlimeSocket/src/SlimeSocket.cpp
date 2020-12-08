@@ -25,7 +25,7 @@
 #include "types.h"
 #include "NetworkUtils.h"
 
-static const char *router_path = "/slime/SlimeRouter.sock";
+static const char *router_path = "/home/SlimeRouter.sock";
 static struct socket_calls socket_library;
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static uint32_t prefix_ip = 0;

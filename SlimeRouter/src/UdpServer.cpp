@@ -98,6 +98,7 @@ Return Value:
     m_ServerSocket = socket(AF_INET, SOCK_DGRAM, 0);
     EXIT_IF_FAILED(m_ServerSocket,
                    Cleanup);
+    LOG("UDP socket\n");
 
     serverAddress.sin_family = AF_INET;
     serverAddress.sin_addr.s_addr = INADDR_ANY;
@@ -107,6 +108,7 @@ Return Value:
                         (const struct sockaddr*)&serverAddress,
                         sizeof(serverAddress)),
                    Cleanup);
+    LOG("UDP socket bind\n");
 
 Cleanup:
     return ec;
