@@ -19,6 +19,7 @@
 #include <errno.h>
 #include <time.h>
 #include <unordered_map>
+#include <sys/epoll.h>
 
 #include "SlimeSocket.h"
 #include "Message.h"
@@ -26,12 +27,16 @@
 #include "NetworkUtils.h"
 
 static const char *router_path = "/home/SlimeRouter.sock";
+static struct epoll_calls epoll_library;
 static struct socket_calls socket_library;
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static uint32_t prefix_ip = 0;
 static uint32_t prefix_mask = 0;
 static int32_t router_socket = 0;
 static std::unordered_map<int, socket_info_t> socket_lookup;
+
+int fd_to_epoll_fd[65536];
+struct epoll_event epoll_events[65536];
 
 __attribute__((constructor))
 int main(void) { 
@@ -112,6 +117,8 @@ ERROR_CODE load_socket_library(void) {
     socket_library.sendto = (ssize_t (*)(int socket, const void *message, size_t length, int flags, const struct sockaddr *dest_addr, socklen_t dest_len)) dlsym(RTLD_NEXT, "sendto");
     socket_library.recvfrom = (ssize_t (*)(int socket, void *message, size_t length, int flags, const struct sockaddr *dest_addr, socklen_t dest_len)) dlsym(RTLD_NEXT, "recvfrom");
 
+    epoll_library.epoll_ctl = (int (*)(int, int, int, epoll_event*)) dlsym(RTLD_NEXT, "epoll_ctl");
+
     return ec;
 }
 
@@ -151,6 +158,7 @@ ERROR_CODE _socket(int domain, int type, int protocol, int* overlay_socket, int*
     MessageHeader message_header;
     
     *overlay_socket = socket_library.socket(domain, type, protocol);
+    fd_to_epoll_fd[*overlay_socket] = 0;
 
     message_header.Id = REQUEST_TYPE_SOCKET;
     message_header.Size = sizeof(socket_request);
@@ -373,9 +381,18 @@ int _connect(int socket, const struct sockaddr_in *addr, socklen_t addrlen) {
     TRACE_IF_FAILED(connect_response.Status, Cleanup, "Router failed to connect socket! 0x%x\n", ec);
 
     if (socket != socket_info.host_socket) {
-        socket_info.overlay_socket = dup(socket_info.overlay_socket);
+        const int overlay_socket = socket_info.overlay_socket;
+        const int new_overlay_socket = dup(overlay_socket);
         dup2(socket_info.host_socket, socket);
+        if (fd_to_epoll_fd[overlay_socket] > 0) {
+            epoll_library.epoll_ctl(fd_to_epoll_fd[overlay_socket], EPOLL_CTL_DEL, overlay_socket, NULL);
+            epoll_library.epoll_ctl(fd_to_epoll_fd[overlay_socket], EPOLL_CTL_ADD, socket, &epoll_events[overlay_socket]);
+            fd_to_epoll_fd[new_overlay_socket] = fd_to_epoll_fd[overlay_socket];
+            fd_to_epoll_fd[overlay_socket] = 0;
+            epoll_events[new_overlay_socket] = epoll_events[overlay_socket];
+        }
         socket_library.close(socket_info.host_socket);
+        socket_info.overlay_socket = new_overlay_socket;
         socket_info.host_socket = socket;
     }
 Cleanup:
@@ -404,7 +421,21 @@ int connect(int socket, const struct sockaddr *addr, socklen_t addrlen) {
     return 0;
 }
 
-/* int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event) { } */
+int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event) {
+    LOG("epoll_ctl(%d, %d, %d)\n", epfd, op, fd);
+
+    switch (op) {
+    case EPOLL_CTL_ADD:
+        fd_to_epoll_fd[fd] = epfd;
+        epoll_events[fd] = *event;
+        break;
+    case EPOLL_CTL_DEL:
+        fd_to_epoll_fd[fd] = 0;
+        break;
+    }
+    return epoll_library.epoll_ctl(epfd, op, fd, event);
+}
+
 /* int getpeername(int socket, struct sockaddr *addr, socklen_t *addrlen) { } */
 /* int getsockname(int socket, struct sockaddr *addr, socklen_t *addrlen) { } */
 /* int getsockopt(int socket, int level, int optname, void *optval, socklen_t *optlen) { } */
@@ -418,7 +449,10 @@ int close(int socket) {
         return socket_library.close(socket);
     }
 
-    return socket_library.close(socket_info.host_socket);
+    const int ret = socket_library.close(socket_info.host_socket);
+    /* fd_to_epoll_fd[socket_info.host_socket] = 0;        // XXX needed? */
+    fd_to_epoll_fd[socket_info.overlay_socket] = 0;
+    return ret;
 }
 
 ssize_t read(int fd, void *buf, size_t len) {
