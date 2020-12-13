@@ -437,14 +437,19 @@ int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event) {
 }
 
 int close(int socket) {
+    socket_info_t socket_info;
+    try {
+        socket_info = socket_lookup.at(socket);
+    } catch (...) {
+        return socket_library.close(socket);
+    }
     LOG("close called\n");
-    socket_info_t socket_info = socket_lookup.at(socket);
     if (socket_info.is_normal) {
         return socket_library.close(socket);
     }
 
     const int ret = socket_library.close(socket_info.host_socket);
-    /* fd_to_epoll_fd[socket_info.host_socket] = 0;        // XXX needed? */
+    fd_to_epoll_fd[socket_info.host_socket] = 0;        // XXX needed?
     fd_to_epoll_fd[socket_info.overlay_socket] = 0;
     return ret;
 }
@@ -558,8 +563,17 @@ int fcntl(int socket, int cmd, ... /* arg */) {
     void *pparam;
     int ret;
 
-    const socket_info_t& socket_info = socket_lookup.at(socket);
-    const bool is_normal = socket_info.is_normal;
+    socket_info_t socket_info;
+    bool is_normal;
+    int overlay_socket = socket, host_socket = socket;
+    try {
+        socket_info = socket_lookup.at(socket);
+        is_normal = socket_info.is_normal;
+        overlay_socket = socket_info.overlay_socket;
+        host_socket = socket_info.host_socket;
+    } catch (...) {
+        is_normal = true;
+    }
     load_socket_library();
 
     // TODO: need to check whether it's a socket here
@@ -574,9 +588,9 @@ int fcntl(int socket, int cmd, ... /* arg */) {
         if (is_normal) {
             ret = socket_library.fcntl(socket, cmd);
         } else {
-            ret = socket_library.fcntl(socket_info.host_socket, cmd);
-            if (socket_info.overlay_socket != socket_info.host_socket) {
-                socket_library.fcntl(socket_info.overlay_socket, cmd);
+            ret = socket_library.fcntl(host_socket, cmd);
+            if (overlay_socket != host_socket) {
+                socket_library.fcntl(overlay_socket, cmd);
             }
         }
         break;
@@ -592,9 +606,9 @@ int fcntl(int socket, int cmd, ... /* arg */) {
         if (is_normal) {
             ret = socket_library.fcntl(socket, cmd, lparam);
         } else {
-            ret = socket_library.fcntl(socket_info.host_socket, cmd, lparam);
-            if (socket_info.overlay_socket != socket_info.host_socket) {
-                socket_library.fcntl(socket_info.overlay_socket, cmd, lparam);
+            ret = socket_library.fcntl(host_socket, cmd, lparam);
+            if (overlay_socket != host_socket) {
+                socket_library.fcntl(overlay_socket, cmd, lparam);
             }
         }
         break;
@@ -603,9 +617,9 @@ int fcntl(int socket, int cmd, ... /* arg */) {
         if (is_normal) {
             ret = socket_library.fcntl(socket, cmd, pparam);
         } else {
-            ret = socket_library.fcntl(socket_info.host_socket, cmd, pparam);
-            if (socket_info.overlay_socket != socket_info.host_socket) {
-                socket_library.fcntl(socket_info.overlay_socket, cmd, pparam);
+            ret = socket_library.fcntl(host_socket, cmd, pparam);
+            if (overlay_socket != host_socket) {
+                socket_library.fcntl(overlay_socket, cmd, pparam);
             }
         }
         break;
