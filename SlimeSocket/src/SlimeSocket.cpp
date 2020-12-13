@@ -381,7 +381,16 @@ int _connect(int socket, const struct sockaddr_in *addr, socklen_t addrlen) {
                     Cleanup,
                     "Failed to read from socket! 0x%x\n", errno);
     
-    TRACE_IF_FAILED(connect_response.Status, Cleanup, "Router failed to connect socket! 0x%x\n", ec);
+    ec = connect_response.Status;
+    if (FAILED(ec)) {
+        if (ec != -EINPROGRESS) {
+            errno = -ec;
+            LOG("Router failed to connect socket! 0x%x\n", ec);
+            LOG("_connect(%d, %s, %hu) -> -1\n", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port));
+            return -1;
+        }
+    }
+    /* TRACE_IF_FAILED(connect_response.Status, Cleanup, "Router failed to connect socket! 0x%x\n", ec); */
 
     if (socket != socket_info.host_socket) {
         const int overlay_socket = socket_info.overlay_socket;
@@ -397,6 +406,11 @@ int _connect(int socket, const struct sockaddr_in *addr, socklen_t addrlen) {
         socket_library.close(socket_info.host_socket);
         socket_info.overlay_socket = new_overlay_socket;
         socket_info.host_socket = socket;
+    }
+    if (FAILED(ec)) {
+        errno = -ec;
+        LOG("_connect(%d, %s, %hu) -> -1\n", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port));
+        return -1;
     }
 Cleanup:
     LOG("_connect(%d, %s, %hu) -> %d\n", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port), ec);
