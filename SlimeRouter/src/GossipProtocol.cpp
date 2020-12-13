@@ -96,8 +96,8 @@ Return Value:
     ERROR_CODE ec = S_OK;
     
     // TODO: remove hardcode
-    m_MulticastGroup.insert("172.22.152.5");
     m_MulticastGroup.insert("172.22.152.6");
+    m_MulticastGroup.insert("172.22.152.7");
     TRACE_IF_FAILED(m_UdpClient->Init(),
                     Cleanup,
                     "Failed to initialize UDP client! 0x%x", ec);
