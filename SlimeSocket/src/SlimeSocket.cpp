@@ -436,12 +436,6 @@ int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event) {
     return epoll_library.epoll_ctl(epfd, op, fd, event);
 }
 
-/* int getpeername(int socket, struct sockaddr *addr, socklen_t *addrlen) { } */
-/* int getsockname(int socket, struct sockaddr *addr, socklen_t *addrlen) { } */
-/* int getsockopt(int socket, int level, int optname, void *optval, socklen_t *optlen) { } */
-/* int setsockopt(int socket, int level, int optname, const void *optval, socklen_t optlen) { } */
-/* int fcntl(int socket, int cmd, ... /1* arg *1/) { } */
-
 int close(int socket) {
     LOG("close called\n");
     socket_info_t socket_info = socket_lookup.at(socket);
@@ -511,5 +505,111 @@ ssize_t recvfrom(int socket, void *message, size_t length, int flags, const stru
     LOG("  ");
     ssize_t ret = recv(socket, message, length, flags);
     LOG("}\n");
+    return ret;
+}
+
+int getpeername(int socket, struct sockaddr *addr, socklen_t *addrlen) {
+    const socket_info_t& socket_info = socket_lookup.at(socket);
+    int ec = S_OK;
+    ec = socket_library.getpeername(socket, addr, addrlen);
+    if (FAILED(ec)) {
+        return socket_library.getpeername(socket_info.overlay_socket, addr, addrlen);
+    }
+    return ec;
+}
+
+int getsockname(int socket, struct sockaddr *addr, socklen_t *addrlen) {
+    const socket_info_t& socket_info = socket_lookup.at(socket);
+    int ec = S_OK;
+    ec = socket_library.getsockname(socket, addr, addrlen);
+    if (FAILED(ec)) {
+        return socket_library.getsockname(socket_info.overlay_socket, addr, addrlen);
+    }
+    return ec;
+}
+
+int getsockopt(int socket, int level, int optname, void *optval, socklen_t *optlen) {
+    const socket_info_t& socket_info = socket_lookup.at(socket);
+    int ec = S_OK;
+    ec = socket_library.getsockopt(socket, level, optname, optval, optlen);
+    if (FAILED(ec)) {
+        return socket_library.getsockopt(socket_info.overlay_socket, level, optname, optval, optlen);
+    }
+    return ec;
+}
+
+int setsockopt(int socket, int level, int optname, const void *optval, socklen_t optlen) {
+    LOG("setsockopt(%d, %d, %d)\n", socket, level, optname);
+    const socket_info_t& socket_info = socket_lookup.at(socket);
+    int ec = S_OK;
+    ec = socket_library.setsockopt(socket, level, optname, optval, optlen);
+    if (FAILED(ec)) {
+        ec = socket_library.setsockopt(socket_info.overlay_socket, level, optname, optval, optlen);
+        if (optname != SO_REUSEPORT && optname != SO_REUSEADDR && level != IPPROTO_IPV6) {
+            ec = socket_library.setsockopt(socket_info.host_socket, level, optname, optval, optlen);
+        }
+    }
+    return ec;
+}
+
+int fcntl(int socket, int cmd, ... /* arg */) {
+    va_list args;
+    long lparam;
+    void *pparam;
+    int ret;
+
+    const socket_info_t& socket_info = socket_lookup.at(socket);
+    const bool is_normal = socket_info.is_normal;
+    load_socket_library();
+
+    // TODO: need to check whether it's a socket here
+
+    va_start(args, cmd);
+    switch (cmd) {
+    case F_GETFD:
+    case F_GETFL:
+    case F_GETOWN:
+    case F_GETSIG:
+    case F_GETLEASE:
+        if (is_normal) {
+            ret = socket_library.fcntl(socket, cmd);
+        } else {
+            ret = socket_library.fcntl(socket_info.host_socket, cmd);
+            if (socket_info.overlay_socket != socket_info.host_socket) {
+                socket_library.fcntl(socket_info.overlay_socket, cmd);
+            }
+        }
+        break;
+    case F_DUPFD:
+    /*case F_DUPFD_CLOEXEC:*/
+    case F_SETFD:
+    case F_SETFL:
+    case F_SETOWN:
+    case F_SETSIG:
+    case F_SETLEASE:
+    case F_NOTIFY:
+        lparam = va_arg(args, long);
+        if (is_normal) {
+            ret = socket_library.fcntl(socket, cmd, lparam);
+        } else {
+            ret = socket_library.fcntl(socket_info.host_socket, cmd, lparam);
+            if (socket_info.overlay_socket != socket_info.host_socket) {
+                socket_library.fcntl(socket_info.overlay_socket, cmd, lparam);
+            }
+        }
+        break;
+    default:
+        pparam = va_arg(args, void *);
+        if (is_normal) {
+            ret = socket_library.fcntl(socket, cmd, pparam);
+        } else {
+            ret = socket_library.fcntl(socket_info.host_socket, cmd, pparam);
+            if (socket_info.overlay_socket != socket_info.host_socket) {
+                socket_library.fcntl(socket_info.overlay_socket, cmd, pparam);
+            }
+        }
+        break;
+    }
+    va_end(args);
     return ret;
 }
