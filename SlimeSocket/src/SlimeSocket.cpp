@@ -25,7 +25,7 @@
 #include "types.h"
 #include "NetworkUtils.h"
 
-static const char *router_path = "/slime/SlimeRouter.sock";
+static const char *router_path = "/home/SlimeRouter.sock";
 static struct socket_calls socket_library;
 static pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 static uint32_t prefix_ip = 0;
@@ -105,6 +105,12 @@ ERROR_CODE load_socket_library(void) {
     socket_library.getsockopt = (int (*)(int, int, int, void *, socklen_t *)) dlsym(RTLD_NEXT, "getsockopt");
     socket_library.fcntl = (int (*)(int, int, ...)) dlsym(RTLD_NEXT, "fcntl");
     socket_library.close = (int (*)(int)) dlsym(RTLD_NEXT, "close");
+    socket_library.write = (ssize_t (*)(int fd, const void *buf, size_t len)) dlsym(RTLD_NEXT, "write");
+    socket_library.read = (ssize_t (*)(int fd, void *buf, size_t len)) dlsym(RTLD_NEXT, "read");
+    socket_library.send = (ssize_t (*)(int fd, const void *buf, size_t len, int flags)) dlsym(RTLD_NEXT, "send");
+    socket_library.recv = (ssize_t (*)(int fd, void *buf, size_t len, int flags)) dlsym(RTLD_NEXT, "recv");
+    socket_library.sendto = (ssize_t (*)(int socket, const void *message, size_t length, int flags, const struct sockaddr *dest_addr, socklen_t dest_len)) dlsym(RTLD_NEXT, "sendto");
+    socket_library.recvfrom = (ssize_t (*)(int socket, void *message, size_t length, int flags, const struct sockaddr *dest_addr, socklen_t dest_len)) dlsym(RTLD_NEXT, "recvfrom");
 
     return ec;
 }
@@ -187,6 +193,7 @@ int socket(int domain, int type, int protocol) {
 }
 
 ERROR_CODE _bind(int socket, struct sockaddr_in *addr, socklen_t addrlen) {
+    LOG("_bind(%d, %s, %hu)\n", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port));
     ERROR_CODE ec = S_OK;
     BindRequest bind_request;
     BindResponse bind_response;
@@ -231,6 +238,7 @@ ERROR_CODE _bind(int socket, struct sockaddr_in *addr, socklen_t addrlen) {
     TRACE_IF_FAILED(bind_response.Status, Cleanup, "Router failed to bind socket! 0x%x\n", ec);
 
 Cleanup:
+    LOG("_bind(%d, %s, %hu) -> %d\n", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port), ec);
     return ec;
 }
 
@@ -411,4 +419,63 @@ int close(int socket) {
     }
 
     return socket_library.close(socket_info.host_socket);
+}
+
+ssize_t read(int fd, void *buf, size_t len) {
+    LOG("read(%d, %lu)\n", fd, len);
+    ssize_t ret = socket_library.read(fd, buf, len);
+    LOG("read(%d, %lu) -> %ld\n", fd, len, ret);
+    return ret;
+}
+
+ssize_t write(int fd, const void *buf, size_t len) {
+    LOG("write(%d, %lu)\n", fd, len);
+    ssize_t ret = socket_library.write(fd, buf, len);
+    LOG("write(%d, %lu) -> %ld\n", fd, len, ret);
+    return ret;
+}
+
+ssize_t recv(int fd, void *buf, size_t len, int flags) {
+    LOG("recv(%d, %lu, %d)\n", fd, len, flags);
+    struct sockaddr_in sin;
+    socklen_t _len = sizeof(sin);
+    if (getsockname(fd, (struct sockaddr *)&sin, &_len) == -1) {
+        perror("getsockname");
+    } else {
+        LOG("recv %s %hu\n", inet_ntoa(((struct sockaddr_in*)&sin)->sin_addr), htons(((struct sockaddr_in*)&sin)->sin_port));
+    }
+    ssize_t ret = socket_library.recv(fd, buf, len, flags);
+    LOG("recv(%d, %lu, %d) -> %ld\n", fd, len, flags, ret);
+    return ret;
+}
+
+ssize_t send(int fd, const void *buf, size_t len, int flags) {
+    LOG("send(%d, %lu, %d)\n", fd, len, flags);
+    ssize_t ret = socket_library.send(fd, buf, len, flags);
+    LOG("send(%d, %lu, %d) -> %ld\n", fd, len, flags, ret);
+    return ret;
+}
+
+ssize_t sendto(int socket, const void *message, size_t length, int flags, const struct sockaddr *dest_addr, socklen_t dest_len) {
+    LOG("sendto {\n");
+    if (dest_addr) {
+        LOG("  ");
+        connect(socket, dest_addr, dest_len);
+    }
+    LOG("  ");
+    ssize_t ret = send(socket, message, length, flags);
+    LOG("}\n");
+    return ret;
+}
+
+ssize_t recvfrom(int socket, void *message, size_t length, int flags, const struct sockaddr *dest_addr, socklen_t dest_len) {
+    LOG("recvfrom {\n");
+    if (dest_addr) {
+        LOG("  ");
+        connect(socket, dest_addr, dest_len);
+    }
+    LOG("  ");
+    ssize_t ret = recv(socket, message, length, flags);
+    LOG("}\n");
+    return ret;
 }
