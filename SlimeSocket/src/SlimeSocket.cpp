@@ -152,6 +152,7 @@ Cleanup:
 }
 
 ERROR_CODE _socket(int domain, int type, int protocol, int* overlay_socket, int* host_socket) {
+    LOG("_socket(%d, %d, %d)\n", domain, type, protocol);
     ERROR_CODE ec = S_OK;
     SocketRequest socket_request;
     SocketResponse socket_response;
@@ -183,6 +184,7 @@ ERROR_CODE _socket(int domain, int type, int protocol, int* overlay_socket, int*
     TRACE_IF_FAILED(socket_response.Status, Cleanup, "Router failed to create socket! 0x%x\n", ec);
 
 Cleanup:
+    LOG("_socket(%d, %d, %d) -> %d\n", domain, type, protocol, ec);
     return ec;
 }
 
@@ -351,6 +353,7 @@ int accept4(int socket, struct sockaddr *addr, socklen_t *addrlen, int flags) {
 }
 
 int _connect(int socket, const struct sockaddr_in *addr, socklen_t addrlen) {
+    LOG("_connect(%d, %s, %hu)\n", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port));
     UNREFERENCED_PARAMETER(addrlen);
     
     ERROR_CODE ec = S_OK;
@@ -396,11 +399,11 @@ int _connect(int socket, const struct sockaddr_in *addr, socklen_t addrlen) {
         socket_info.host_socket = socket;
     }
 Cleanup:
+    LOG("_connect(%d, %s, %hu) -> %d\n", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port), ec);
     return ec;
 }
 
 int connect(int socket, const struct sockaddr *addr, socklen_t addrlen) {
-    LOG("connect called\n");
 #ifdef MEASURE
     struct timespec start;
     struct timespec end;
