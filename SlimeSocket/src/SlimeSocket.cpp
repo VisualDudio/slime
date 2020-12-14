@@ -300,6 +300,7 @@ Cleanup:
 
 ERROR_CODE
 _accept4(int socket, struct sockaddr *addr, socklen_t *addrlen, int flags, int* client_socket) {
+    LOG("(\n");
     UNREFERENCED_PARAMETER(addr);
     UNREFERENCED_PARAMETER(addrlen);
     
@@ -531,6 +532,7 @@ ssize_t recvfrom(int socket, void *message, size_t length, int flags, const stru
 }
 
 int getpeername(int socket, struct sockaddr *addr, socklen_t *addrlen) {
+    LOG("getpeername\n");
     const socket_info_t& socket_info = socket_lookup.at(socket);
     int ec = S_OK;
     ec = socket_library.getpeername(socket, addr, addrlen);
@@ -541,6 +543,7 @@ int getpeername(int socket, struct sockaddr *addr, socklen_t *addrlen) {
 }
 
 int getsockname(int socket, struct sockaddr *addr, socklen_t *addrlen) {
+    LOG("getsockname\n");
     const socket_info_t& socket_info = socket_lookup.at(socket);
     int ec = S_OK;
     ec = socket_library.getsockname(socket, addr, addrlen);
@@ -551,6 +554,7 @@ int getsockname(int socket, struct sockaddr *addr, socklen_t *addrlen) {
 }
 
 int getsockopt(int socket, int level, int optname, void *optval, socklen_t *optlen) {
+    LOG("getsockopt\n");
     const socket_info_t& socket_info = socket_lookup.at(socket);
     int ec = S_OK;
     ec = socket_library.getsockopt(socket, level, optname, optval, optlen);
