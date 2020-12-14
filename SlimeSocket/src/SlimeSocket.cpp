@@ -536,7 +536,7 @@ ssize_t recvfrom(int socket, void *message, size_t length, int flags, const stru
 }
 
 int getpeername(int socket, struct sockaddr *addr, socklen_t *addrlen) {
-    LOG("getpeername\n");
+    DBG("getpeername\n");
     socket_info_t socket_info;
     try {
         socket_info = socket_lookup.at(socket);
@@ -552,7 +552,7 @@ int getpeername(int socket, struct sockaddr *addr, socklen_t *addrlen) {
 }
 
 int getsockname(int socket, struct sockaddr *addr, socklen_t *addrlen) {
-    LOG("getsockname\n");
+    DBG("getsockname\n");
     socket_info_t socket_info;
     try {
         socket_info = socket_lookup.at(socket);
@@ -568,7 +568,7 @@ int getsockname(int socket, struct sockaddr *addr, socklen_t *addrlen) {
 }
 
 int getsockopt(int socket, int level, int optname, void *optval, socklen_t *optlen) {
-    LOG("getsockopt\n");
+    DBG("getsockopt\n");
     socket_info_t socket_info;
     try {
         socket_info = socket_lookup.at(socket);
@@ -584,7 +584,7 @@ int getsockopt(int socket, int level, int optname, void *optval, socklen_t *optl
 }
 
 int setsockopt(int socket, int level, int optname, const void *optval, socklen_t optlen) {
-    LOG("setsockopt(%d, %d, %d)\n", socket, level, optname);
+    DBG("setsockopt(%d, %d, %d)\n", socket, level, optname);
     socket_info_t socket_info;
     try {
         socket_info = socket_lookup.at(socket);
