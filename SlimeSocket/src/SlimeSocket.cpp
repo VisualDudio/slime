@@ -544,7 +544,12 @@ int getpeername(int socket, struct sockaddr *addr, socklen_t *addrlen) {
 
 int getsockname(int socket, struct sockaddr *addr, socklen_t *addrlen) {
     LOG("getsockname\n");
-    const socket_info_t& socket_info = socket_lookup.at(socket);
+    socket_info_t socket_info;
+    try {
+        socket_info = socket_lookup.at(socket);
+    } catch (...) {
+        return socket_library.getsockname(socket_info.overlay_socket, addr, addrlen);
+    }
     int ec = S_OK;
     ec = socket_library.getsockname(socket, addr, addrlen);
     if (FAILED(ec)) {
