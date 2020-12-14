@@ -38,6 +38,12 @@ static std::unordered_map<int, socket_info_t> socket_lookup;
 int fd_to_epoll_fd[65536];
 struct epoll_event epoll_events[65536];
 
+#ifdef DEBUG
+#define DBG(...) fprintf(stderr, ##__VA_ARGS__)
+#else
+#define DBG(...) 
+#endif
+
 __attribute__((constructor))
 int main(void) { 
     LOG("main called\n");
@@ -152,7 +158,7 @@ Cleanup:
 }
 
 ERROR_CODE _socket(int domain, int type, int protocol, int* overlay_socket, int* host_socket) {
-    LOG("_socket(%d, %d, %d)\n", domain, type, protocol);
+    DBG("_socket(%d, %d, %d)\n", domain, type, protocol);
     ERROR_CODE ec = S_OK;
     SocketRequest socket_request;
     SocketResponse socket_response;
@@ -184,12 +190,11 @@ ERROR_CODE _socket(int domain, int type, int protocol, int* overlay_socket, int*
     TRACE_IF_FAILED(socket_response.Status, Cleanup, "Router failed to create socket! 0x%x\n", ec);
 
 Cleanup:
-    LOG("_socket(%d, %d, %d) -> %d\n", domain, type, protocol, ec);
+    DBG("_socket(%d, %d, %d) -> %d\n", domain, type, protocol, ec);
     return ec;
 }
 
 int socket(int domain, int type, int protocol) {
-    LOG("socket called\n");
     int overlay_socket = 0;
     int host_socket = 0;
     
@@ -203,7 +208,7 @@ int socket(int domain, int type, int protocol) {
 }
 
 ERROR_CODE _bind(int socket, struct sockaddr_in *addr, socklen_t addrlen) {
-    LOG("_bind(%d, %s, %hu)\n", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port));
+    DBG("_bind(%d, %s, %hu)\n", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port));
     ERROR_CODE ec = S_OK;
     BindRequest bind_request;
     BindResponse bind_response;
@@ -248,12 +253,11 @@ ERROR_CODE _bind(int socket, struct sockaddr_in *addr, socklen_t addrlen) {
     TRACE_IF_FAILED(bind_response.Status, Cleanup, "Router failed to bind socket! 0x%x\n", ec);
 
 Cleanup:
-    LOG("_bind(%d, %s, %hu) -> %d\n", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port), ec);
+    DBG("_bind(%d, %s, %hu) -> %d\n", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port), ec);
     return ec;
 }
 
 int bind(int socket, const struct sockaddr *addr, socklen_t addrlen) {
-    LOG("bind called\n");
     int ec = S_OK;
     
     // TODO: send request for each interface if INADDR_ANY
@@ -300,7 +304,7 @@ Cleanup:
 
 ERROR_CODE
 _accept4(int socket, struct sockaddr *addr, socklen_t *addrlen, int flags, int* client_socket) {
-    LOG("(\n");
+    LOG("accept4\n");
     UNREFERENCED_PARAMETER(addr);
     UNREFERENCED_PARAMETER(addrlen);
     
@@ -354,7 +358,7 @@ int accept4(int socket, struct sockaddr *addr, socklen_t *addrlen, int flags) {
 }
 
 int _connect(int socket, const struct sockaddr_in *addr, socklen_t addrlen) {
-    LOG("_connect(%d, %s, %hu)\n", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port));
+    DBG("_connect(%d, %s, %hu)\n", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port));
     UNREFERENCED_PARAMETER(addrlen);
     
     ERROR_CODE ec = S_OK;
@@ -387,7 +391,7 @@ int _connect(int socket, const struct sockaddr_in *addr, socklen_t addrlen) {
         if (ec != -EINPROGRESS) {
             errno = -ec;
             LOG("Router failed to connect socket! 0x%x\n", ec);
-            LOG("_connect(%d, %s, %hu) -> -1\n", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port));
+            DBG("_connect(%d, %s, %hu) -> -1\n", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port));
             return -1;
         }
     }
@@ -410,11 +414,11 @@ int _connect(int socket, const struct sockaddr_in *addr, socklen_t addrlen) {
     }
     if (FAILED(ec)) {
         errno = -ec;
-        LOG("_connect(%d, %s, %hu) -> -1\n", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port));
+        DBG("_connect(%d, %s, %hu) -> -1\n", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port));
         return -1;
     }
 Cleanup:
-    LOG("_connect(%d, %s, %hu) -> %d\n", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port), ec);
+    DBG("_connect(%d, %s, %hu) -> %d\n", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port), ec);
     return ec;
 }
 
@@ -440,7 +444,7 @@ int connect(int socket, const struct sockaddr *addr, socklen_t addrlen) {
 }
 
 int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event) {
-    LOG("epoll_ctl(%d, %d, %d)\n", epfd, op, fd);
+    DBG("epoll_ctl(%d, %d, %d)\n", epfd, op, fd);
 
     switch (op) {
     case EPOLL_CTL_ADD:
@@ -473,61 +477,61 @@ int close(int socket) {
 }
 
 ssize_t read(int fd, void *buf, size_t len) {
-    LOG("read(%d, %lu)\n", fd, len);
+    DBG("read(%d, %lu)\n", fd, len);
     ssize_t ret = socket_library.read(fd, buf, len);
-    LOG("read(%d, %lu) -> %ld\n", fd, len, ret);
+    DBG("read(%d, %lu) -> %ld\n", fd, len, ret);
     return ret;
 }
 
 ssize_t write(int fd, const void *buf, size_t len) {
-    LOG("write(%d, %lu)\n", fd, len);
+    DBG("write(%d, %lu)\n", fd, len);
     ssize_t ret = socket_library.write(fd, buf, len);
-    LOG("write(%d, %lu) -> %ld\n", fd, len, ret);
+    DBG("write(%d, %lu) -> %ld\n", fd, len, ret);
     return ret;
 }
 
 ssize_t recv(int fd, void *buf, size_t len, int flags) {
-    LOG("recv(%d, %lu, %d)\n", fd, len, flags);
+    DBG("recv(%d, %lu, %d)\n", fd, len, flags);
     struct sockaddr_in sin;
     socklen_t _len = sizeof(sin);
     if (getsockname(fd, (struct sockaddr *)&sin, &_len) == -1) {
         perror("getsockname");
     } else {
-        LOG("recv %s %hu\n", inet_ntoa(((struct sockaddr_in*)&sin)->sin_addr), htons(((struct sockaddr_in*)&sin)->sin_port));
+        DBG("recv %s %hu\n", inet_ntoa(((struct sockaddr_in*)&sin)->sin_addr), htons(((struct sockaddr_in*)&sin)->sin_port));
     }
     ssize_t ret = socket_library.recv(fd, buf, len, flags);
-    LOG("recv(%d, %lu, %d) -> %ld\n", fd, len, flags, ret);
+    DBG("recv(%d, %lu, %d) -> %ld\n", fd, len, flags, ret);
     return ret;
 }
 
 ssize_t send(int fd, const void *buf, size_t len, int flags) {
-    LOG("send(%d, %lu, %d)\n", fd, len, flags);
+    DBG("send(%d, %lu, %d)\n", fd, len, flags);
     ssize_t ret = socket_library.send(fd, buf, len, flags);
-    LOG("send(%d, %lu, %d) -> %ld\n", fd, len, flags, ret);
+    DBG("send(%d, %lu, %d) -> %ld\n", fd, len, flags, ret);
     return ret;
 }
 
 ssize_t sendto(int socket, const void *message, size_t length, int flags, const struct sockaddr *dest_addr, socklen_t dest_len) {
-    LOG("sendto {\n");
+    DBG("sendto {\n");
     if (dest_addr) {
-        LOG("  ");
+        DBG("  ");
         connect(socket, dest_addr, dest_len);
     }
-    LOG("  ");
+    DBG("  ");
     ssize_t ret = send(socket, message, length, flags);
-    LOG("}\n");
+    DBG("}\n");
     return ret;
 }
 
 ssize_t recvfrom(int socket, void *message, size_t length, int flags, const struct sockaddr *dest_addr, socklen_t dest_len) {
-    LOG("recvfrom {\n");
+    DBG("recvfrom {\n");
     if (dest_addr) {
-        LOG("  ");
+        DBG("  ");
         connect(socket, dest_addr, dest_len);
     }
-    LOG("  ");
+    DBG("  ");
     ssize_t ret = recv(socket, message, length, flags);
-    LOG("}\n");
+    DBG("}\n");
     return ret;
 }
 
