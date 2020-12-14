@@ -533,7 +533,12 @@ ssize_t recvfrom(int socket, void *message, size_t length, int flags, const stru
 
 int getpeername(int socket, struct sockaddr *addr, socklen_t *addrlen) {
     LOG("getpeername\n");
-    const socket_info_t& socket_info = socket_lookup.at(socket);
+    socket_info_t socket_info;
+    try {
+        socket_info = socket_lookup.at(socket);
+    } catch (...) {
+        return socket_library.getpeername(socket, addr, addrlen);
+    }
     int ec = S_OK;
     ec = socket_library.getpeername(socket, addr, addrlen);
     if (FAILED(ec)) {
@@ -548,7 +553,7 @@ int getsockname(int socket, struct sockaddr *addr, socklen_t *addrlen) {
     try {
         socket_info = socket_lookup.at(socket);
     } catch (...) {
-        return socket_library.getsockname(socket_info.overlay_socket, addr, addrlen);
+        return socket_library.getsockname(socket, addr, addrlen);
     }
     int ec = S_OK;
     ec = socket_library.getsockname(socket, addr, addrlen);
@@ -560,7 +565,12 @@ int getsockname(int socket, struct sockaddr *addr, socklen_t *addrlen) {
 
 int getsockopt(int socket, int level, int optname, void *optval, socklen_t *optlen) {
     LOG("getsockopt\n");
-    const socket_info_t& socket_info = socket_lookup.at(socket);
+    socket_info_t socket_info;
+    try {
+        socket_info = socket_lookup.at(socket);
+    } catch (...) {
+        return socket_library.getsockopt(socket, level, optname, optval, optlen);
+    }
     int ec = S_OK;
     ec = socket_library.getsockopt(socket, level, optname, optval, optlen);
     if (FAILED(ec)) {
@@ -571,7 +581,12 @@ int getsockopt(int socket, int level, int optname, void *optval, socklen_t *optl
 
 int setsockopt(int socket, int level, int optname, const void *optval, socklen_t optlen) {
     LOG("setsockopt(%d, %d, %d)\n", socket, level, optname);
-    const socket_info_t& socket_info = socket_lookup.at(socket);
+    socket_info_t socket_info;
+    try {
+        socket_info = socket_lookup.at(socket);
+    } catch (...) {
+        return socket_library.setsockopt(socket, level, optname, optval, optlen);
+    }
     int ec = S_OK;
     ec = socket_library.setsockopt(socket, level, optname, optval, optlen);
     if (FAILED(ec)) {
