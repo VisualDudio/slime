@@ -47,6 +47,7 @@ struct epoll_event epoll_events[65536];
 __attribute__((constructor))
 int main(void) { 
     LOG("main called\n");
+    socket_lookup.insert({-1, {-1, -1, false}});
     
     ERROR_CODE ec = S_OK;
     
@@ -391,7 +392,7 @@ int _connect(int socket, const struct sockaddr_in *addr, socklen_t addrlen) {
         if (ec != -EINPROGRESS) {
             errno = -ec;
             LOG("Router failed to connect socket! 0x%x\n", ec);
-            DBG("_connect(%d, %s, %hu) -> -1\n", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port));
+            LOG("_connect1(%d, %s, %hu) -> -1, ec = %d\n", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port), ec);
             return -1;
         }
     }
@@ -413,12 +414,12 @@ int _connect(int socket, const struct sockaddr_in *addr, socklen_t addrlen) {
         socket_info.host_socket = socket;
     }
     if (FAILED(ec)) {
-        errno = -ec;
-        DBG("_connect(%d, %s, %hu) -> -1\n", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port));
+        errno = -EINPROGRESS;
+        LOG("_connect2(%d, %s, %hu) -> -1, ec = %d\n", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port), ec);
         return -1;
     }
 Cleanup:
-    DBG("_connect(%d, %s, %hu) -> %d\n", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port), ec);
+    LOG("_connect(%d, %s, %hu) -> %d\n", socket, inet_ntoa(((struct sockaddr_in*)addr)->sin_addr), htons(((struct sockaddr_in*)addr)->sin_port), ec);
     return ec;
 }
 
